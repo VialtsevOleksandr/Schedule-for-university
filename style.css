@@ -1,0 +1,174 @@
+/* Reset CSS */
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+b, u, i, center,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, embed, 
+figure, figcaption, footer, header, hgroup, 
+menu, nav, output, ruby, section, summary,
+time, mark, audio, video {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	font-size: 100%;
+	font: inherit;
+	vertical-align: baseline;
+}
+/* HTML5 display-role reset for older browsers */
+article, aside, details, figcaption, figure, 
+footer, header, hgroup, menu, nav, section {
+	display: block;
+}
+body {
+	line-height: 1;
+}
+ol, ul {
+	list-style: none;
+}
+blockquote, q {
+	quotes: none;
+}
+blockquote:before, blockquote:after,
+q:before, q:after {
+	content: '';
+	content: none;
+}
+table {
+	border-collapse: collapse;
+	border-spacing: 0;
+}
+
+.body {
+    font-family: "Sofia Sans", sans-serif;
+}
+
+.title {
+    font-size: 1.5em;
+    font-weight: 600;
+    margin-block: 5px;
+    display: flex;
+    justify-content: center;
+    font-family: "Sofia Sans", sans-serif;
+}
+
+.container {
+    display: grid;
+    margin-inline: 5px;
+    column-gap: 5px;
+    grid-template-columns: minmax(300px, 25%) auto;
+
+}
+
+.filters {
+    height: 80vh;
+    position: sticky;
+    background-color: #BDE0FE;
+    border-radius: 15px;
+    top: 5px;
+}
+.button-container {
+    display: flex;
+    justify-content: center;
+    margin: 10px 5px;
+    column-gap: 10px;
+}
+.action-button {
+    background-color: #3B82F6; 
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 15px; 
+    font-size: 16px;
+    font-family: "Sofia Sans", sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+}
+.action-button:hover {
+    background-color: #2563EB;
+    transform: scale(1.05);
+    box-shadow: 0 6px 10px rgba(37, 99, 235, 0.5);
+}
+.action-button:active {
+    transform: scale(0.95);
+    box-shadow: 0 3px 5px rgba(37, 99, 235, 0.4);
+}  
+.search-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 10px 5px;
+  box-sizing: border-box;
+  border: 2px solid #6ea4fc;
+  border-radius: 25px;
+  padding: 5px;
+  background-color: #F3F4F6;
+  transition: box-shadow 0.3s ease;
+}
+
+input[type="search"]::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+}
+.search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  background: transparent;
+  padding: 10px;
+  color: #1F2937;
+  font-weight: 500;
+}
+.search-input::placeholder {
+  color: #9CA3AF;
+  font-style: italic;
+}
+.search-button {
+  border: none;
+  background: #3B82F6;
+  color: white;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+.icon {
+  width: 20px;
+  height: 20px;
+}
+.search-container:hover {
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+}
+.search-button:hover {
+  background-color: #2563EB;
+  transform: scale(1.1);
+}
+
+
+
+.schedule {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-template-rows: 0.1fr repeat(3, 1fr);
+    gap: 5px;
+    background-color: rgb(146, 196, 146);
+}
+
+.schedule > div {
+    border: 1px solid black;
+}
+.day {
+    font-weight: 900;
+    font-size: 30px;
+}
