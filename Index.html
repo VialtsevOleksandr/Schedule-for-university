@@ -45,14 +45,19 @@
         </div>
         <div class="schedule">
             <div class="header-course">
-                1 курс
+                <button class="nav-btn left-btn" onclick="navigate(-1)">&#8249;</button>
+                <span class="course-value" id="courseValue">1 КУРС</span>
+                <button class="nav-btn right-btn" onclick="navigate(1)">&#8250;</button>
+            </div>
+            <div class="header-group">
+                <span class="group-value" id="groupValue">КН-1</span>
             </div>
             <div class="day monday"><p>ПОНЕДІЛОК</p></div>
             <div class="time-first-pair"><p>8:40-9:25 9:30-10:15</p></div>
             <div class="time-second-pair"><p>10:35-11:20 11:25-12:10</p></div>
             <div class="time-third-pair"><p>12:20-13:05 13:10-13:55</p></div>
             <div class="time-fourth-pair"><p>14:05-14:50 14:55-15:40</p></div>
-            <div class="day tuesday"><p>ВІВТОРОК</p></div>
+            <!-- <div class="day tuesday"><p>ВІВТОРОК</p></div>
             <div class="time-first-pair"><p>8:40-9:25 9:30-10:15</p></div>
             <div class="time-second-pair"><p>10:35-11:20 11:25-12:10</p></div>
             <div class="time-third-pair"><p>12:20-13:05 13:10-13:55</p></div>
@@ -71,11 +76,39 @@
             <div class="time-first-pair"><p>8:40-9:25 9:30-10:15</p></div>
             <div class="time-second-pair"><p>10:35-11:20 11:25-12:10</p></div>
             <div class="time-third-pair"><p>12:20-13:05 13:10-13:55</p></div>
-            <div class="time-fourth-pair"><p>14:05-14:50 14:55-15:40</p></div>
+            <div class="time-fourth-pair"><p>14:05-14:50 14:55-15:40</p></div> -->
         </div>
         <!-- <div class="add-schedule">
             
         </div> -->
+    </div>
+
+    <div class="modal-window" id="modal-window">
+        <button class="close-modal" id="close-modal" aria-label="Close modal">X</button>
+        <form class="add-groups-form" id="add-groups-form">
+            <fieldset>
+                <legend>Додати групу</legend>
+                <label for="group-name"><p>Назва групи</p></label>
+                <input type="text" class="input-group" id="group-name" maxlength="15" minlength="3" required placeholder="Введіть назву групи...">
+                <label for="group-course"><p>Курс</p></label>
+                <select class="input-group" id="group-course" required>
+                    <option disabled value="" selected>Не обрано</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                </select>
+                <label for="group-specialty"><p>Спеціальність</p></label>
+                <select class="input-group" id="group-specialty" required>
+                    <option disabled value="" selected>Не обрано</option>
+                    <option value="Прикладна математика">Прикладна математика</option>
+                    <option value="Системний аналіз">Системний аналіз</option>
+                    <option value="Інформатика">Інформатика</option>
+                    <option value="програмна інженерія">Програмна інженерія</option>
+                </select>
+            </fieldset>
+            <button class="submit-button" type="submit">Додати</button>
+        </form>
     </div>
     <script src="app.js"></script>
 </body>
