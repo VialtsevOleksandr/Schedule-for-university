@@ -19,11 +19,95 @@ namespace Schedule_for_Un.Controllers
         {
             _context = context;
         }
-        
+
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Group>>> GetGroups()
         {
             return await _context.Groups.ToListAsync();
+        }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Group>> GetGroup(int id)
+        {
+            var group = await _context.Groups.FindAsync(id);
+
+            if (group == null)
+            {
+                return NotFound();
+            }
+
+            return group;
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> PutGroup(int id, Group group)
+        {
+            if (id != group.Id)
+            {
+                return BadRequest();
+            }
+
+            if (_context.Groups.Any(g => g.Name.ToLower() == group.Name.ToLower() && g.Id != group.Id))
+            {
+                return BadRequest(new { message = "Група з таким ім'ям вже існує" });
+            }
+
+            _context.Entry(group).State = EntityState.Modified;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!GroupExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent();
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<Group>> PostGroup(Group group)
+        {
+            if (_context.Groups.Any(g => g.Name.ToLower() == group.Name.ToLower()))
+            {
+                return BadRequest(new { message = "Група з таким ім'ям вже існує" });
+            }
+
+            _context.Groups.Add(group);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction("GetGroup", new { id = group.Id }, group);
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<ActionResult<Group>> DeleteGroup(int id)
+        {
+            var group = await _context.Groups.FindAsync(id);
+            if (group == null)
+            {
+                return NotFound();
+            }
+            if (_context.Lessons.Any(l => l.GroupId == id))
+            {
+                return BadRequest(new { message = "Неможливо видалити групу, оскільки вона має заняття" });
+            }
+            
+            _context.Groups.Remove(group);
+            await _context.SaveChangesAsync();
+
+            return group;
+        }
+        private bool GroupExists(int id)
+        {
+            return _context.Groups.Any(e => e.Id == id);
         }
     }
 }

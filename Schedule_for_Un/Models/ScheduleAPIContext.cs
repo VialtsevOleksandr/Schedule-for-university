@@ -21,7 +21,8 @@ public class ScheduleAPIContext : DbContext
             entity.Property(e => e.NumberOfPair).IsRequired();
             entity.HasOne(e => e.Teacher)
                 .WithMany(t => t.FreeHours)
-                .HasForeignKey(e => e.TeacherId);
+                .HasForeignKey(e => e.TeacherId)
+                .HasConstraintName("FK_FreeHours_Teachers");
         });
 
         modelBuilder.Entity<Teacher>(entity =>
@@ -29,23 +30,14 @@ public class ScheduleAPIContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Fullname).IsRequired().HasColumnType("nvarchar(100)");
             entity.Property(e => e.Position).IsRequired().HasColumnType("nvarchar(50)");
-            entity.HasMany(e => e.FreeHours)
-                .WithOne(fh => fh.Teacher)
-                .HasForeignKey(fh => fh.TeacherId);
-            entity.HasMany(e => e.Lessons)
-                .WithOne(l => l.Teacher)
-                .HasForeignKey(l => l.TeacherId);
         });
 
         modelBuilder.Entity<Group>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasColumnType("nvarchar(50)");
-            entity.Property(e => e.Course).IsRequired();
+            entity.Property(e => e.Course).IsRequired().HasColumnType("tinyint");
             entity.Property(e => e.Specialty).IsRequired().HasColumnType("nvarchar(50)");
-            entity.HasMany(e => e.Lessons)
-                .WithOne(l => l.Group)
-                .HasForeignKey(l => l.GroupId);
         });
 
         modelBuilder.Entity<Lesson>(entity =>
@@ -54,10 +46,12 @@ public class ScheduleAPIContext : DbContext
             entity.Property(e => e.Subject).IsRequired().HasColumnType("nvarchar(50)");
             entity.HasOne(e => e.Teacher)
                 .WithMany(t => t.Lessons)
-                .HasForeignKey(e => e.TeacherId);
+                .HasForeignKey(e => e.TeacherId)
+                .HasConstraintName("FK_Lessons_Teachers");
             entity.HasOne(e => e.Group)
                 .WithMany(g => g.Lessons)
-                .HasForeignKey(e => e.GroupId);
+                .HasForeignKey(e => e.GroupId)
+                .HasConstraintName("FK_Lessons_Groups");
         });
     }
 }

@@ -6,7 +6,7 @@ namespace Schedule_for_Un.Models
     {
         public int Id { get; set; }
         public string Name { get; set; } = null!;
-        public bool Course { get; set; }
+        public byte Course { get; set; }
         public string Specialty { get; set; } = null!;
         public List<Lesson> Lessons { get; set; } = new List<Lesson>();
     }

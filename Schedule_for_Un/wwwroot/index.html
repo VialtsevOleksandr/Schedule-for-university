@@ -30,6 +30,7 @@
                       </svg>
                     </button>
                 </div>
+                <div id="groups-container" class="groups-container"></div>
             </div>
             <div class="teachers">
                 <div class="search-container">
@@ -41,6 +42,7 @@
                       </svg>
                     </button>
                 </div>
+                <div id="teachers-container" class="teachers-container"></div>
             </div>
         </div>
         <div class="schedule">
@@ -84,15 +86,15 @@
     </div>
 
     <div class="modal-window" id="modal-window">
-        <button class="close-modal" id="close-modal" aria-label="Close modal">X</button>
+        <button class="close-modal" id="close-modal" type="button" title="Close modal">X</button>
 
         <form class="add-groups-form" id="add-groups-form" style="display: none">
             <fieldset>
                 <legend>Додати групу</legend>
                 <label for="group-name"><p>Назва групи</p></label>
-                <input type="text" class="input-add" id="group-name" maxlength="15" minlength="3" required placeholder="Введіть назву групи...">
+                <input type="text" class="input-add" id="group-name" name="group-name" maxlength="15" minlength="3" required placeholder="Введіть назву групи...">
                 <label for="group-course"><p>Курс</p></label>
-                <select class="input-add" id="group-course" required>
+                <select class="input-add" id="group-course" name="group-course" required>
                     <option disabled value="" selected>Не обрано</option>
                     <option value="1">1</option>
                     <option value="2">2</option>
@@ -100,7 +102,7 @@
                     <option value="4">4</option>
                 </select>
                 <label for="group-specialty"><p>Спеціальність</p></label>
-                <select class="input-add" id="group-specialty" required>
+                <select class="input-add" id="group-specialty" name="group-specialty" required>
                     <option disabled value="" selected>Не обрано</option>
                     <option value="Прикладна математика">Прикладна математика</option>
                     <option value="Системний аналіз">Системний аналіз</option>
@@ -115,9 +117,9 @@
             <fieldset>
                 <legend>Додати викладача</legend>
                 <label for="teacher-name"><p>ПІБ викладача (скорочено)</p></label>
-                <input type="text" class="input-add" id="teacher-name" maxlength="50" minlength="5" required placeholder="Введіть ПІБ викладача...">
+                <input type="text" class="input-add" id="teacher-name" name="teacher-name" maxlength="50" minlength="5" required placeholder="Введіть ПІБ викладача...">
                 <label for="teacher-position"><p>Позиція</p></label>
-                <select class="input-add" id="teacher-position" required>
+                <select class="input-add" id="teacher-position" name="teacher-position" required>
                     <option disabled value="" selected>Не обрано</option>
                     <option value="Асистент">Асистент</option>
                     <option value="Доцент">Доцент</option>
@@ -176,6 +178,17 @@
             <button class="submit-button" type="submit">Додати</button>
         </form>
     </div>
+
+    <div class="modal-window" id="delete-modal-window">
+      <button class="close-modal" id="close-delete-modal" type="button" title="Close modal">X</button>
+      <div class="delete-confirmation">
+        <p>Ви впевнені, що хочете видалити цю групу?</p>
+        <button class="delete-button-submit" type="submit" id="confirm-delete-button">Видалити</button>
+      </div>
+    </div>
+
+    <div class="message-window" id="message-window"></div>
+
     <script src="/js/app.js"></script>
 </body>
 </html>

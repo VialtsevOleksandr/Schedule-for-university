@@ -75,12 +75,28 @@ table {
     top: 5px;
     box-sizing: border-box;
     box-shadow: 0 0 8px rgba(14, 44, 89, 0.6);
+    display: flex;
+    flex-direction: column;
 }
 .button-container {
     display: flex;
     justify-content: center;
-    margin: 10px 5px;
+    margin: 10px 5px 5px 5px;
     column-gap: 10px;
+}
+
+.groups, .teachers {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex: 1;
+}
+.groups-container, .teachers-container {
+    overflow-y: auto;
+    flex-grow: 1;   
+}
+.groups-container::-webkit-scrollbar, .teachers-container::-webkit-scrollbar {
+    display: none;
 }
 .action-button {
     background-color: #3B82F6; 
@@ -109,7 +125,7 @@ table {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  margin: 10px 5px;
+  margin: 5px;
   box-sizing: border-box;
   border: 2px solid #6ea4fc;
   border-radius: 25px;
@@ -240,7 +256,6 @@ input[type="search"]::-webkit-search-cancel-button {
 .add-groups-form, .add-teachers-form {
     font-family: "Sofia Sans", sans-serif;
 }
-
 .modal-window {
     display: none;
     box-sizing: border-box;
@@ -253,8 +268,9 @@ input[type="search"]::-webkit-search-cancel-button {
     border-radius: 12px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     min-width: 500px;
-    z-index: 1000;
+    z-index: 100;
     padding: 20px;
+    font-family: "Sofia Sans", sans-serif;
 }
 
 .close-modal {
@@ -396,3 +412,134 @@ button:disabled {
     color: #666;
     cursor: not-allowed;
 }
+
+/* Delete confirmation */
+.delete-confirmation {
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    justify-content: center;
+    align-items: center;
+}
+.delete-confirmation p {
+    padding-block: 20px;
+    width: 100%;
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+.delete-button-submit {
+    background-color: #ff0000;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 15px; 
+    font-size: 1.2em;
+    font-family: "Sofia Sans", sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(255, 0, 0, 0.3);
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+}
+.delete-button-submit:hover {
+    transform: scale(1.05);
+    background-color: #d20000;
+    box-shadow: 0 6px 10px rgba(235, 37, 37, 0.5);
+}
+.delete-button-submit:active {
+    transform: scale(0.95);
+    box-shadow: 0 3px 5px rgba(235, 37, 37, 0.4);
+}
+
+/* Message window */
+.message-window {
+    display: none;
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    box-sizing: border-box;
+    padding: 15px;
+    border-radius: 20px;
+    font-size: 18px;
+    font-family: "Sofia Sans", sans-serif;
+    color: black;
+    text-align: center;
+    min-width: 300px;
+    max-width: 600px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.5s ease-in-out, visibility 0.5s;
+    z-index: 1000;
+}
+.success {
+    background: rgb(208, 255, 208);
+    border: 3px solid rgba(0, 255, 0, 0.5);
+}
+.error {
+    background: rgb(250, 209, 207);
+    border: 3px solid rgba(255, 0, 0, 0.5);
+}
+.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Group container style */
+.groups-container {
+    display: grid;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    padding: 5px;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+}
+  
+.group-item {
+    display: flex;
+    box-sizing: border-box;
+    align-items: center;
+    justify-content: space-between;
+    height: 40px;
+    background-color: #fffae2;
+    border: 2px solid #6ea4fc;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+    border-radius: 20px;
+    padding: 5px;
+    position: relative;
+}
+.group-item:hover {
+    transform: scale(1.05);
+}
+
+.group-item:hover .icon-button {
+    visibility: visible;
+}
+.group-item:hover .group-name {
+    filter: blur(2px);
+}
+.group-name {
+    font-family: "Sofia Sans", sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    transition: filter 0.3s ease;
+}
+.icon-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    visibility: hidden;
+    /* transition: visibility 0.1s ease; */
+}
+.icon-button svg {
+    width: 20px;
+    height: 20px;
+    fill: white;
+}
+.delete-button:hover svg {
+    fill: rgba(255, 0, 0, 0.8);
+}
+.edit-button:hover svg {
+    fill: rgb(0, 255, 0);
+}
+  
