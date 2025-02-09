@@ -17,8 +17,9 @@ const courses = ["1 КУРС", "2 КУРС", "3 КУРС", "4 КУРС"];
   const addTeacherForm = document.getElementById("add-teachers-form");
   const addGroupForm = document.getElementById("add-groups-form");
   const groupsContainer = document.getElementById("groups-container");
+  const teachersContainer = document.getElementById("teachers-container");
 
-  let initialGroupData = {};
+  const timeCells = document.querySelectorAll('.time-cell');
 
   function disabledButton() {
     let buttons = document.querySelectorAll("button:not(#modal-window button):not(#delete-modal-window button):not(.delete-button-submit)");
@@ -44,6 +45,10 @@ function closeModal() {
   if (addTeacherForm.style.display === "block") {
     addTeacherForm.style.display = "none";
     clearForm(addTeacherForm);
+    Array.prototype.forEach.call(timeCells, cell => {
+      cell.classList.remove('selected');
+      cell.removeAttribute("data-id");//доробити для обраного часу.
+    });
     addTeacherForm.removeAttribute("data-edit-id");
   }
   
@@ -103,7 +108,43 @@ closeModalButton.addEventListener("click", () => {
   closeModal();
 });
 
-const timeCells = document.querySelectorAll('.time-cell');
+// ---------------КОЛОНКИ ВИБОРУ ВІЛЬНОГО ЧАСУ ВИКЛАДАЧА-----------------
+function getSelectedColumns() {
+  let selectedColumns = [];
+
+  timeCells.forEach(cell => {
+    if (cell.classList.contains('selected')) {
+      const [_, day, pair] = cell.id.split('-');
+      selectedColumns.push({ day: parseInt(day), pair: parseInt(pair) });
+    }
+  });
+  selectedColumns.sort((a, b) => a.day - b.day || a.pair - b.pair);
+  return selectedColumns;
+}
+
+async function highlightTeacherFreeHours(teacherId) {
+  try {
+    const response = await fetch(`/api/freehours/teacher/${teacherId}`);
+    if (!response.ok) {
+      throw new Error("Failed to fetch free hours");
+    }
+    const freeHours = await response.json();
+
+    freeHours.forEach(freeHour => {
+      const cellId = `cell-${freeHour.day}-${freeHour.numberOfPair}`;
+      const cell = document.getElementById(cellId);
+      if (cell) {
+        cell.classList.add('selected');
+        cell.setAttribute('data-id', freeHour.id);
+      }
+    });
+    return freeHours;
+  } catch (error) {
+    console.error("Error highlighting free hours:", error);
+    return [];
+  }
+}
+
 timeCells.forEach(cell => {
   cell.addEventListener('click', () => {
     cell.classList.toggle('selected');
@@ -128,6 +169,117 @@ document.querySelectorAll('.pair-header').forEach(header => {
   header.addEventListener('click', () => {
     toggleCells(`tbody tr:nth-child(${header.dataset.pair}) td`);
   });
+});
+
+// ---------------------- ADD TEACHER --------------------------------
+
+addTeacherForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const formData = new FormData(addTeacherForm);
+  const teacherData = {
+    fullName: formData.get("teacher-name"),
+    position: formData.get("teacher-position")
+  };
+  const teacherId = addTeacherForm.getAttribute("data-edit-id");
+
+  if (teacherId) {
+    teacherData.id = teacherId;
+  }
+  
+  const newFreeHours = getSelectedColumns();
+  const teacherDataWithFreeHours = { ...teacherData, freeHours: newFreeHours };
+
+  if (teacherId && JSON.stringify(teacherDataWithFreeHours) === JSON.stringify(initialTeacherData)) {
+    showMessage("Дані не змінено!", "error", 2000);
+    return;
+  }
+  if (newFreeHours.length === 0) {
+    showMessage("Оберіть вільний час для викладача!", "error", 2000);
+    return;
+  }
+
+  try {
+    let teacher;
+    if (!teacherId || (teacherData.fullName !== initialTeacherData.fullName || teacherData.position !== initialTeacherData.position)) {
+      const teacherResponse = await fetch(teacherId ? `/api/teachers/${teacherId}` : "/api/teachers", {
+        method: teacherId ? "PUT" : "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(teacherData)
+      });
+
+      if (!teacherResponse.ok) {
+        const errorData = await teacherResponse.json();
+        showMessage(errorData.message || "Помилка збереження вчителя!", "error", 2000);
+        throw new Error("Server error");
+      }
+
+      teacher = await teacherResponse.json();
+    } else {
+      teacher = teacherData;
+    }
+    
+    // клітинки для додавання та видалення
+    const cellsToAdd = [];
+    const cellsToDelete = [];
+
+    timeCells.forEach(cell => {
+      if (cell.classList.contains('selected') && !cell.hasAttribute('data-id')) {
+        cellsToAdd.push(cell);
+      } else if (!cell.classList.contains('selected') && cell.hasAttribute('data-id')) {
+        cellsToDelete.push(cell);
+      }
+    });
+
+    // Видаляємо записи
+    const deletePromises = cellsToDelete.map(async (cell) => {
+      const freeHourId = cell.getAttribute('data-id');
+      const response = await fetch(`/api/freehours/${freeHourId}`, {
+        method: "DELETE"
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        showMessage(errorData.message || "Помилка видалення вільного часу!", "error", 2000);
+        throw new Error("Server error");
+      }
+    });
+
+     // Додаємо нові записи
+    const addPromises = cellsToAdd.map(async (cell) => {
+      const [_, day, pair] = cell.id.split('-');
+      const freeHourData = {
+        day: parseInt(day),
+        numberOfPair: parseInt(pair),
+        teacherId: teacher.id
+      };
+
+      const response = await fetch("/api/freehours", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(freeHourData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        showMessage(errorData.message || "Помилка збереження вільного часу!", "error", 2000);
+        throw new Error("Server error");
+      }
+    });
+
+    await Promise.all([...deletePromises, ...addPromises]);
+
+    showMessage(teacherId ? "Вчителя успішно оновлено!" : "Вчителя успішно додано!", "success", 2000);
+    closeModal();
+    loadTeachers();
+
+  } catch (error) {
+    console.error("There was a problem with the fetch operation:", error);
+  }
 });
 
 addGroupForm.addEventListener("submit", async (event) => {
@@ -183,49 +335,37 @@ addGroupForm.addEventListener("submit", async (event) => {
   }
 });
 
-async function openEditModal(groupId) {
-  try {
-    const response = await fetch(`/api/groups/${groupId}`);
-    const group = await response.json();
-
-    openModal();
-    addGroupForm.style.display = "block";
-    addGroupForm.querySelector("legend").textContent = "Редагувати групу";
-    addGroupForm.querySelector(".submit-button").textContent = "Зберегти";
-    addGroupForm.setAttribute("data-edit-id", groupId);
-
-    document.getElementById("group-name").value = group.name;
-    document.getElementById("group-course").value = group.course;
-    document.getElementById("group-specialty").value = group.specialty;
-
-    initialGroupData = {
-      name: String(group.name),
-      course: String(group.course),
-      specialty: String(group.specialty),
-      id: String(group.id) //використовуємо для порівняння, спеціально вкінці, бо === не буде працювати
-    };
-
-  } catch (error) {
-    console.error("Error loading group:", error);
-  }
-}
-
 document.addEventListener("DOMContentLoaded", (event) => {
 
   loadGroups();
+  loadTeachers();
 
   groupsContainer.addEventListener('click', (event) => {
     if (event.target.closest('.edit-button')) {
       
       const groupId = event.target.closest('.edit-button').id.replace('edit-group', '');
-      openEditModal(groupId);
+      openEditGroupModal(groupId);
     } else if (event.target.closest('.delete-button')) {
       
       const groupId = event.target.closest('.delete-button').id.replace('delete-group', '');
-      openDeleteModal(groupId);
+      openDeleteGroupModal(groupId);
+    }
+  });
+
+  teachersContainer.addEventListener('click', (event) => {
+    if (event.target.closest('.edit-button')) {
+      
+      const teacherId = event.target.closest('.edit-button').id.replace('edit-teacher', '');
+      openEditTeacherModal(teacherId);
+    } else if (event.target.closest('.delete-button')) {
+      
+      const teacherId = event.target.closest('.delete-button').id.replace('delete-teacher', '');
+      openDeleteTeacherModal(teacherId);
     }
   });
 });
+// ---------------------- GROUPS --------------------------------
+let initialGroupData = {};
 
 async function loadGroups() {
   try {
@@ -259,17 +399,114 @@ function addGroupToContainer(group) {
     </button>
   `;
   groupsContainer.appendChild(groupItem);
-
 }
-// ---------------------- DELETE GROUP --------------------------------
+
+async function openEditGroupModal(groupId) {
+  try {
+    const response = await fetch(`/api/groups/${groupId}`);
+    const group = await response.json();
+
+    openModal();
+    addGroupForm.style.display = "block";
+    addGroupForm.querySelector("legend").textContent = "Редагувати групу";
+    addGroupForm.querySelector(".submit-button").textContent = "Зберегти";
+    addGroupForm.setAttribute("data-edit-id", groupId);
+
+    document.getElementById("group-name").value = group.name;
+    document.getElementById("group-course").value = group.course;
+    document.getElementById("group-specialty").value = group.specialty;
+
+    initialGroupData = {
+      name: String(group.name),
+      course: String(group.course),
+      specialty: String(group.specialty),
+      id: String(group.id) //використовуємо для порівняння, спеціально вкінці, бо === не буде працювати
+    };
+
+  } catch (error) {
+    console.error("Error loading group:", error);
+  }
+}
+// ---------------------- TEACHERS --------------------------------
+let initialTeacherData = {};
+async function openEditTeacherModal(teacherId) {
+  try {
+    const responseTeacher = await fetch(`/api/teachers/${teacherId}`);
+    const teacher = await responseTeacher.json();
+
+    openModal();
+    addTeacherForm.style.display = "block";
+    addTeacherForm.querySelector("legend").textContent = "Редагувати викладача";
+    addTeacherForm.querySelector(".submit-button").textContent = "Зберегти";
+    addTeacherForm.setAttribute("data-edit-id", teacherId);
+
+    document.getElementById("teacher-name").value = teacher.fullName;
+    document.getElementById("teacher-position").value = teacher.position;
+    const freeHours = await highlightTeacherFreeHours(teacherId);
+
+    initialTeacherData = {
+      fullName: String(teacher.fullName),
+      position: String(teacher.position),
+      id: String(teacher.id),
+      freeHours: freeHours.map(fh => ({ day: fh.day, pair: fh.numberOfPair })).sort((a, b) => a.day - b.day || a.pair - b.pair)
+    };
+
+  } catch (error) {
+    console.error("Error loading teacher:", error);
+  }
+}
+async function loadTeachers() {
+  try {
+    const response = await fetch("/api/teachers");
+    const teachers = await response.json();
+    teachersContainer.innerHTML = "";
+    teachers.forEach(teacher => addTeacherToContainer(teacher));
+  } catch (error) {
+    console.error("Error loading teachers:", error);
+  }
+}
+
+function addTeacherToContainer(teacher) {
+  const teacherItem = document.createElement("div");
+  teacherItem.className = "teacher-item";
+  teacherItem.innerHTML = `
+    <button class="icon-button edit-button" id="edit-teacher${teacher.id}" title="Edit" type="button">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon">
+        <path d="M12 20h9"></path>
+        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path>
+      </svg>
+    </button>
+    <span class="teacher-name">${teacher.fullName}</span>
+    <button class="icon-button delete-button" id="delete-teacher${teacher.id}" title="Delete" type="button">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon">
+        <path d="M3 6h18"></path>
+        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+        <path d="M10 11v6"></path>
+        <path d="M14 11v6"></path>
+        <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
+      </svg>
+    </button>
+  `;
+  teachersContainer.appendChild(teacherItem);
+}
+// ---------------------- DELETE GROUP AND TEACHER--------------------------------
 const deleteModalWindow = document.getElementById("delete-modal-window");
 const closeDeleteModalButton = document.getElementById("close-delete-modal");
 const confirmDeleteButton = document.getElementById("confirm-delete-button");
+const deleteConfirmationText = document.getElementById("delete-confirmation-text");
 
-let groupIdToDelete = null;
+function openDeleteGroupModal(groupId) {
+  deleteModalWindow.setAttribute("data-group-id", groupId);
+  deleteConfirmationText.textContent = `Ви впевнені, що хочете видалити групу?`;
+  deleteModalWindow.style.display = "block";
+  header.classList.add("blur");
+  container.classList.add("blur");
+  disabledButton();
+}
 
-function openDeleteModal(groupId) {
-  groupIdToDelete = groupId;
+function openDeleteTeacherModal(teacherId) {
+  deleteModalWindow.setAttribute("data-teacher-id", teacherId);
+  deleteConfirmationText.textContent = `Ви впевнені, що хочете видалити викладача?`;
   deleteModalWindow.style.display = "block";
   header.classList.add("blur");
   container.classList.add("blur");
@@ -278,30 +515,45 @@ function openDeleteModal(groupId) {
 
 function closeDeleteModal() {
   deleteModalWindow.style.display = "none";
+  deleteConfirmationText.textContent = "";
   header.classList.remove("blur");
   container.classList.remove("blur");
   enabledButton();
-  groupIdToDelete = null;
+  if (deleteModalWindow.hasAttribute("data-group-id")) {
+    deleteModalWindow.removeAttribute("data-group-id");
+  } else {
+    deleteModalWindow.removeAttribute("data-teacher-id");
+  }
 }
 
 closeDeleteModalButton.addEventListener("click", closeDeleteModal);
 
 confirmDeleteButton.addEventListener("click", async () => {
-  if (!groupIdToDelete) return;
+  const groupIdToDelete = deleteModalWindow.getAttribute("data-group-id");
+  const teacherIdToDelete = deleteModalWindow.getAttribute("data-teacher-id");
+
+  if (!groupIdToDelete && !teacherIdToDelete) return;
+
+  const url = groupIdToDelete ? `/api/groups/${groupIdToDelete}` : `/api/teachers/${teacherIdToDelete}`;
+  const entity = groupIdToDelete ? "групи" : "викладача";
 
   try {
-    const response = await fetch(`/api/groups/${groupIdToDelete}`, {
+    const response = await fetch(url, {
       method: "DELETE"
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      showMessage(errorData.message || "Помилка видалення групи!", "error", 2000);
+      showMessage(errorData.message || `Помилка видалення ${entity}!`, "error", 2000);
       throw new Error("Server error");
     }
 
-    showMessage("Групу успішно видалено!", "success", 2000);
-    loadGroups();
+    showMessage(`${entity.charAt(0).toUpperCase() + entity.slice(1)} успішно видалено!`, "success", 2000);
+    if (groupIdToDelete) {
+      loadGroups();
+    } else {
+      loadTeachers();
+    }
     closeDeleteModal();
 
   } catch (error) {

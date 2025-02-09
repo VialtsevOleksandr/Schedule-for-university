@@ -15,5 +15,7 @@ namespace Schedule_for_Un.Models
         public string Subject { get; set; } = null!;
         public bool IsLecture { get; set; }
         
+        // public int FreeHourId { get; set; }
+        // public FreeHour? FreeHour { get; set; }
     }
 }

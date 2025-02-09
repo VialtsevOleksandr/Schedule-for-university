@@ -19,6 +19,7 @@ public class ScheduleAPIContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Day).IsRequired();
             entity.Property(e => e.NumberOfPair).IsRequired();
+            entity.Property(e => e.IsFree).IsRequired();
             entity.HasOne(e => e.Teacher)
                 .WithMany(t => t.FreeHours)
                 .HasForeignKey(e => e.TeacherId)
@@ -28,7 +29,7 @@ public class ScheduleAPIContext : DbContext
         modelBuilder.Entity<Teacher>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Fullname).IsRequired().HasColumnType("nvarchar(100)");
+            entity.Property(e => e.FullName).IsRequired().HasColumnType("nvarchar(100)");
             entity.Property(e => e.Position).IsRequired().HasColumnType("nvarchar(50)");
         });
 

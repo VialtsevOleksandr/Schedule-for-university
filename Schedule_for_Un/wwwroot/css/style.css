@@ -322,6 +322,7 @@ label p {
     background-color: #f9f9f9;
     box-shadow: 0 4px 4px rgba(78, 80, 83, 0.3);
     transition: border-color 0.3s ease;
+    font-family: "Sofia Sans", sans-serif;
 }
 
 .input-add:focus {
@@ -329,7 +330,6 @@ label p {
     outline: none;
 }
 .input-add::placeholder {
-    font-family: "Sofia Sans", sans-serif;
     font-style: italic;
     color: #9CA3AF;
 }
@@ -405,6 +405,10 @@ select {
 }
 .time-cell.selected {
     background-color: #4ac34c;
+}
+.time-cell.not-free {
+    background-color: rgb(255, 115, 0);
+    cursor: not-allowed;
 }
 
 button:disabled {
@@ -485,7 +489,7 @@ button:disabled {
     visibility: visible;
 }
 
-/* Group container style */
+/* Group container style and Teacher container style*/
 .groups-container {
     display: grid;
     justify-content: center;
@@ -494,8 +498,16 @@ button:disabled {
     padding: 5px;
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
 }
+.teachers-container {
+    display: grid;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    padding: 5px;
+    grid-template-columns: repeat(auto-fill);
+}
   
-.group-item {
+.group-item, .teacher-item {
     display: flex;
     box-sizing: border-box;
     align-items: center;
@@ -508,17 +520,17 @@ button:disabled {
     padding: 5px;
     position: relative;
 }
-.group-item:hover {
+.group-item:hover, .teacher-item:hover {
     transform: scale(1.05);
 }
 
-.group-item:hover .icon-button {
+.group-item:hover .icon-button, .teacher-item:hover .icon-button {
     visibility: visible;
 }
-.group-item:hover .group-name {
+.group-item:hover .group-name, .teacher-item:hover .teacher-name {
     filter: blur(2px);
 }
-.group-name {
+.group-name, .teacher-name {
     font-family: "Sofia Sans", sans-serif;
     font-size: 1rem;
     font-weight: 700;
@@ -529,7 +541,6 @@ button:disabled {
     border: none;
     cursor: pointer;
     visibility: hidden;
-    /* transition: visibility 0.1s ease; */
 }
 .icon-button svg {
     width: 20px;
@@ -542,4 +553,5 @@ button:disabled {
 .edit-button:hover svg {
     fill: rgb(0, 255, 0);
 }
+
   
