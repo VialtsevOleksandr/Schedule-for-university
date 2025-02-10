@@ -1,10 +1,32 @@
+const courseText = document.getElementById("courseValue");
 const courses = ["1 КУРС", "2 КУРС", "3 КУРС", "4 КУРС"];
-  let currentIndex = 0;
+let currentIndex = courses.indexOf(courseText.textContent);
 
-  function navigate(direction) {
-    currentIndex = (currentIndex + direction + courses.length) % courses.length; // Циклічний перехід
-    document.getElementById("courseValue").textContent = courses[currentIndex];
+function navigate(direction) {
+  currentIndex += direction;
+  if (currentIndex < 0) {
+    currentIndex = courses.length - 1;
+  } else if (currentIndex >= courses.length) {
+    currentIndex = 0;
   }
+  courseText.textContent = courses[currentIndex];
+  courseText.setAttribute("data-course", currentIndex + 1);
+  loadSchedule();
+}
+
+async function loadSchedule() {
+  try {
+    const response = await fetch("/api/groups");
+    const groups = await response.json();
+    const sortedGroups = sortGroups(groups);
+    const course = parseInt(courseText.getAttribute("data-course"));
+    const scheduleTable = document.getElementById("schedule-table");
+    scheduleTable.innerHTML = "";
+    scheduleTable.appendChild(generateScheduleTable(sortedGroups, course));
+  } catch (error) {
+    console.error('Error fetching groups:', error);
+  }
+}
 
 
   const addGroupsButton = document.getElementById("add-groups");
@@ -339,6 +361,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
   loadGroups();
   loadTeachers();
+  loadSchedule();
 
   groupsContainer.addEventListener('click', (event) => {
     if (event.target.closest('.edit-button')) {
@@ -560,3 +583,112 @@ confirmDeleteButton.addEventListener("click", async () => {
     console.error("There was a problem with the fetch operation:", error);
   }
 });
+
+function generateScheduleTable(groups, course) {
+  const table = document.createElement("table");
+  table.classList.add("schedule-table");
+  
+  // Заголовки груп
+  const theader = document.createElement("thead");
+  table.appendChild(theader);
+  const headerRow = document.createElement("tr");
+  const emptyCell = document.createElement("th");
+  emptyCell.colSpan = 2;
+  emptyCell.rowSpan = 2;
+  headerRow.appendChild(emptyCell);
+  
+  const filteredGroups = groups.filter(group => group.course === course);
+  filteredGroups.forEach(group => {
+      const th = document.createElement("th");
+      th.textContent = group.name;
+      th.colSpan = 1;
+      headerRow.appendChild(th);
+  });
+  theader.appendChild(headerRow);
+  
+  // Рядок спеціальностей
+  const specialtyRow = document.createElement("tr");
+  
+  let prevSpecialty = "";
+  let spanCount = 0;
+  filteredGroups.forEach((group, index) => {
+      if (group.specialty === prevSpecialty) {
+          spanCount++;
+      } else {
+          if (spanCount > 1) {
+              specialtyRow.lastChild.colSpan = spanCount;
+          }
+          const td = document.createElement("th");
+          td.textContent = group.specialty;
+          specialtyRow.appendChild(td);
+          prevSpecialty = group.specialty;
+          spanCount = 1;
+      }
+  });
+  if (spanCount > 1) {
+      specialtyRow.lastChild.colSpan = spanCount;
+  }
+  theader.appendChild(specialtyRow);
+
+  const tbody = document.createElement("tbody");
+  table.appendChild(tbody);
+  
+  // Рядки днів тижня та часу пар
+  const days = ["Понеділок", "Вівторок", "Середа", "Четвер", "П'ятниця"];
+  const times = [
+      "8:40-9:25 9:30-10:15", 
+      "10:35-11:20 11:25-12:10", 
+      "12:30-13:05 13:10-13:55", 
+      "14:05-14:50 14:55-15:40"
+  ];
+  
+  days.forEach(day => {
+      const dayRow = document.createElement("tr");
+      const dayCell = document.createElement("td");
+      dayCell.textContent = day;
+      dayCell.classList.add("day");
+      dayCell.rowSpan = times.length;
+      dayRow.appendChild(dayCell);
+      
+      times.forEach((time, index) => {
+          const timeRow = index === 0 ? dayRow : document.createElement("tr");
+          const timeCell = document.createElement("td");
+          timeCell.textContent = time;
+          timeCell.classList.add("pair-time-cell");
+          timeRow.appendChild(timeCell);
+          
+          filteredGroups.forEach(group => {
+              const classCell = document.createElement("td");
+              classCell.textContent = "";
+              classCell.setAttribute("data-group-id", group.id);
+              classCell.setAttribute("data-day", days.indexOf(day) + 1);
+              classCell.setAttribute("data-pair", index + 1);
+              timeRow.appendChild(classCell);
+          });
+          
+          tbody.appendChild(timeRow);
+      });
+
+      if (day !== days[days.length - 1]) {
+        const emptyRow = document.createElement("tr");
+        const emptyRowCell = document.createElement("td");
+        emptyRowCell.colSpan = 2 + filteredGroups.length;
+        emptyRow.appendChild(emptyRowCell);
+        emptyRowCell.classList.add("empty-row");
+        tbody.appendChild(emptyRow);
+      }
+  });
+  
+  return table;
+}
+
+function sortGroups(groups) {
+  return groups.sort((a, b) => {
+    if (a.specialty === b.specialty) {
+      const numA = parseInt(a.name.match(/\d+/)[0]);
+      const numB = parseInt(b.name.match(/\d+/)[0]);
+      return numA - numB;
+    }
+    return a.specialty.localeCompare(b.specialty);
+  });
+}
