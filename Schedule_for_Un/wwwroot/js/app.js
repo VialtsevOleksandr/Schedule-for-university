@@ -40,6 +40,7 @@ async function loadSchedule() {
   const addGroupForm = document.getElementById("add-groups-form");
   const groupsContainer = document.getElementById("groups-container");
   const teachersContainer = document.getElementById("teachers-container");
+  const scheduleTable = document.getElementById("schedule-table");
 
   const timeCells = document.querySelectorAll('.time-cell');
 
@@ -345,9 +346,11 @@ addGroupForm.addEventListener("submit", async (event) => {
       const newGroup = await response.json();
       addGroupToContainer(newGroup);
       showMessage("Групу успішно додано!", "success", 2000);
+      loadSchedule();
     } else {
       showMessage("Групу успішно оновлено!", "success", 2000);
       loadGroups();
+      loadSchedule();
     }
 
     closeModal();
@@ -386,7 +389,18 @@ document.addEventListener("DOMContentLoaded", (event) => {
       openDeleteTeacherModal(teacherId);
     }
   });
+
+  scheduleTable.addEventListener('click', async (event) => {
+    const cell = event.target.closest('td[data-group-id]');
+    if (cell) {
+      const groupId = cell.getAttribute('data-group-id');
+      const day = cell.getAttribute('data-day');
+      const pair = cell.getAttribute('data-pair');
+      //
+    }
+  });
 });
+
 // ---------------------- GROUPS --------------------------------
 let initialGroupData = {};
 
@@ -574,6 +588,7 @@ confirmDeleteButton.addEventListener("click", async () => {
     showMessage(`${entity.charAt(0).toUpperCase() + entity.slice(1)} успішно видалено!`, "success", 2000);
     if (groupIdToDelete) {
       loadGroups();
+      loadSchedule();
     } else {
       loadTeachers();
     }
@@ -663,6 +678,7 @@ function generateScheduleTable(groups, course) {
               classCell.setAttribute("data-group-id", group.id);
               classCell.setAttribute("data-day", days.indexOf(day) + 1);
               classCell.setAttribute("data-pair", index + 1);
+
               timeRow.appendChild(classCell);
           });
           

@@ -410,6 +410,8 @@ select {
 
 .teacher-schedule-table th,
 .teacher-schedule-table td {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
     padding: 10px;
     border: 1px solid #ddd;
     text-align: center;
