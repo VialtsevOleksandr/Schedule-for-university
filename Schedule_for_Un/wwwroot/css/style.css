@@ -212,7 +212,7 @@ input[type="search"]::-webkit-search-cancel-button {
     border-block: 1.2px solid black;
 }
 .schedule-table th:first-child {
-    width: 225px;
+    width: 185px;
 }
 
 .schedule-table th, .schedule-table .pair-time-cell, .schedule-table .day {
@@ -228,10 +228,13 @@ input[type="search"]::-webkit-search-cancel-button {
     font-size: 40px;
     writing-mode: vertical-rl;
     text-orientation: upright;
+    padding: 0;
+    height: 450px;
 }
-/* .schedule-table .pair-time-cell {
-    word-wrap: break-word;
-} */
+.schedule-table .pair-time-cell {
+    font-size: 14px;
+    padding: 0;
+}
 
 /* Course select */
 .header-course {
@@ -323,7 +326,7 @@ input[type="search"]::-webkit-search-cancel-button {
     background: #cc0000;
 }
 
-legend {
+.add-form {
     font-size: 1.5rem;
     font-weight: 700;
     text-align: center;
@@ -581,4 +584,96 @@ button:disabled {
     fill: rgb(0, 255, 0);
 }
 
+/* teacher card */
+.teacher-card {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: auto;
+    max-width: 800px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    font-family: "Sofia Sans", sans-serif;
+}
+i {
+    font-style: italic;
+}
+.teacher-card h2 {
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+.teacher-card p {
+    font-size: 18px;
+    margin-bottom: 20px;
+}
+.teacher-card p b, .teacher-card h2 b {
+    font-weight: 800;
+}
   
+.teacher-card-schedule-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-family: "Sofia Sans", sans-serif;
+}
+
+.teacher-card-schedule-table th, .teacher-card-schedule-table tr td:first-child { 
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
+.teacher-card-schedule-table th,
+.teacher-card-schedule-table td {
+    box-sizing: border-box;
+    border: 1px solid #767676;
+    text-align: center;
+    vertical-align: middle;
+    padding: 10px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+.teacher-card-time-cell.selected {
+    background-color: #4ac34c;
+}
+.teacher-card-time-cell.highlight {
+    background-color: #eeff54;
+    border: 2px solid gold;
+    animation: glow 1.5s infinite;
+}
+  
+@keyframes glow {
+    0% {
+      box-shadow: 0 0 5px gold;
+    }
+    50% {
+      box-shadow: 0 0 30px gold;
+    }
+    100% {
+      box-shadow: 0 0 5px gold;
+    }
+}
+/* add lesson */
+.add-lesson-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+.add-lesson-content {
+    position: relative;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}

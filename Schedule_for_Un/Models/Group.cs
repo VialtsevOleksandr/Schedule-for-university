@@ -8,6 +8,8 @@ namespace Schedule_for_Un.Models
         public string Name { get; set; } = null!;
         public byte Course { get; set; }
         public string Specialty { get; set; } = null!;
-        public List<Lesson> Lessons { get; set; } = new List<Lesson>();
+        public virtual ICollection<GroupLesson> GroupLessons { get; set; } = new List<GroupLesson>();
+
+        
     }
 }

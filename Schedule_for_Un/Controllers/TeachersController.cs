@@ -93,8 +93,8 @@ namespace Schedule_for_Un.Controllers
             {
             return NotFound();
             }
-            
-            if (_context.Lessons.Any(l => l.TeacherId == id))
+
+            if (_context.TeacherLessons.Any(tl => tl.TeacherId == id))
             {
             return BadRequest(new { message = "Неможливо видалити викладача, оскільки він має заняття" });
             }

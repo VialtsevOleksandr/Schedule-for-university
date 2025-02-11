@@ -6,16 +6,17 @@ namespace Schedule_for_Un.Models
     public class Lesson
     {
         public int Id { get; set; }
-        public int GroupId { get; set; }
-        public Group? Group { get; set; } 
-        public int TeacherId { get; set; }
-        public Teacher? Teacher { get; set; }
-        public int Date { get; set; }
-        public int NumberOfPair { get; set; }
+        public byte Day { get; set; }
+        public byte NumberOfPair { get; set; }
         public string Subject { get; set; } = null!;
+        public byte HoursOfSubject { get; set; }
+        public byte? HoursOfConsultation { get; set; }
+        public bool HaveConsultation { get; set; }
         public bool IsLecture { get; set; }
+        public bool IsEvenWeek { get; set; }
+        public virtual ICollection<GroupLesson> GroupLessons { get; set; } = new List<GroupLesson>();
+        public virtual ICollection<TeacherLesson> TeacherLessons { get; set; } = new List<TeacherLesson>();
+        public virtual ICollection<FreeHour> FreeHours { get; set; } = new List<FreeHour>();
         
-        // public int FreeHourId { get; set; }
-        // public FreeHour? FreeHour { get; set; }
     }
 }

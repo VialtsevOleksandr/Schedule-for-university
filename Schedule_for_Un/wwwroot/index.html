@@ -53,20 +53,14 @@
             </div>
             <div id="schedule-table"></div>
         </div>
-        <div class="add-lesson" id="add-lesson">
-            <form class="add-lesson-form">
-              <legend>Додавання пари</legend>
-              <label for="lesson-name"><p>Назва пари</p></label>
-            </form>
-        </div>
     </div>
 
-    <div class="modal-window" id="modal-window">
+    <div class="modal-window" id="modal-window" style="display: none">
         <button class="close-modal" id="close-modal" type="button" title="Close modal">X</button>
 
         <form class="add-groups-form" id="add-groups-form" style="display: none">
             <fieldset>
-                <legend>Додати групу</legend>
+                <legend class="add-form">Додати групу</legend>
                 <label for="group-name"><p>Назва групи</p></label>
                 <input type="text" class="input-add" id="group-name" name="group-name" maxlength="15" minlength="3" required placeholder="Введіть назву групи...">
                 <label for="group-course"><p>Курс</p></label>
@@ -83,7 +77,7 @@
                     <option value="Прикладна математика">Прикладна математика</option>
                     <option value="Системний аналіз">Системний аналіз</option>
                     <option value="Інформатика">Інформатика</option>
-                    <option value="програмна інженерія">Програмна інженерія</option>
+                    <option value="Програмна інженерія">Програмна інженерія</option>
                 </select>
             </fieldset>
             <button class="submit-button" type="submit">Додати</button>
@@ -91,7 +85,7 @@
 
         <form class="add-teachers-form" id="add-teachers-form" style="display: none">
             <fieldset>
-                <legend>Додати викладача</legend>
+                <legend class="add-form">Додати викладача</legend>
                 <label for="teacher-name"><p>ПІБ викладача (скорочено)</p></label>
                 <input type="text" class="input-add" id="teacher-name" name="teacher-name" maxlength="50" minlength="5" required placeholder="Введіть ПІБ викладача...">
                 <label for="teacher-position"><p>Позиція</p></label>
@@ -155,7 +149,7 @@
         </form>
     </div>
 
-    <div class="modal-window" id="delete-modal-window">
+    <div class="modal-window" id="delete-modal-window" style="display: none">
       <button class="close-modal" id="close-delete-modal" type="button" title="Close modal">X</button>
       <div class="delete-confirmation">
         <p id="delete-confirmation-text"></p>
@@ -165,6 +159,37 @@
 
     <div class="message-window" id="message-window"></div>
 
-    <script src="/js/app.js"></script>
+    <!-- <div class="add-lesson" id="add-lesson"> -->
+      <!-- <form class="add-lesson-form">
+        <fieldset>
+          <legend class="add-form">Додати пару</legend>
+          <label for="lesson-group"><p>Група</p></label>
+          <input type="text" class="input-add" id="lesson-group" name="lesson-group" value="Назва групи" readonly>
+          <label for="lesson-day"><p>День тижня</p></label>
+          <input type="text" class="input-add" id="lesson-group" name="lesson-group" value="Назва дня" readonly>
+          <label for="lesson-pair"><p>Номер пари</p></label>
+          <input type="text" class="input-add" id="lesson-pair" name="lesson-pair" value="Номер пари" readonly>
+
+          <label for="lesson-name"><p>Назва предмету</p></label>
+          <input type="text" class="input-add" id="lesson-name" name="lesson-name" maxlength="50" minlength="5" required placeholder="Введіть назву предмету...">
+
+          <fieldset class="lesson-type">
+            <legend>Тип пари:</legend>
+            <input type="radio" id="lecture" name="lesson-type" value="Лекція" checked>
+            <label for="lecture">Лекція</label>
+            <input type="radio" id="practice" name="lesson-type" value="Практика">
+            <label for="practice">Практика</label>
+          </fieldset>
+        </fieldset>
+        <button class="submit-button" type="submit">Додати</button>
+      </form> -->
+  <!-- </div> -->
+  <div class="add-lesson-overlay" id="add-lesson-overlay">
+    <div class="add-lesson-content">
+      <button class="close-modal" id="close-add-lesson-overlay" type="button" title="Close modal">X</button>
+    </div>
+    <div id="teacher-card" class="teacher-card"></div>
+  </div>
+  <script src="/js/app.js"></script>
 </body>
 </html>

@@ -8,7 +8,7 @@ namespace Schedule_for_Un.Models
         public int Id { get; set; }
         public string FullName { get; set; } = null!;
         public string Position { get; set; } = null!;
-        public List<FreeHour> FreeHours { get; set; } = new List<FreeHour>();
-        public List<Lesson> Lessons { get; set; } = new List<Lesson>();
+        public virtual ICollection<FreeHour> FreeHours { get; set; } = new List<FreeHour>();
+        public virtual ICollection<TeacherLesson> TeacherLessons { get; set; } = new List<TeacherLesson>();
     }
 }

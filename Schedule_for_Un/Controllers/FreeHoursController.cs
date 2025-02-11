@@ -82,6 +82,22 @@ namespace Schedule_for_Un.Controllers
             return NoContent();
         }
 
+        // [HttpPut("lesson/{lessonId}")]
+        // public async Task<IActionResult> PutFreeHourLesson(int lessonId)
+        // {
+        //     var freeHour = await _context.FreeHours.FirstOrDefaultAsync(fh => fh.LessonId == lessonId);
+        //     if (freeHour == null)
+        //     {
+        //         return NotFound();
+        //     }
+
+        //     freeHour.LessonId = null;
+        //     _context.Entry(freeHour).State = EntityState.Modified;
+        //     await _context.SaveChangesAsync();
+
+        //     return NoContent();
+        // }
+
         //доробити видалення
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteFreeHour(int id)
@@ -91,7 +107,7 @@ namespace Schedule_for_Un.Controllers
             {
                 return NotFound();
             }
-            if (freeHour.IsFree == false)
+            if (freeHour.IsFree == false || freeHour.LessonId != null)
             {
                 return BadRequest(new { message = "Неможливо видалити зайнятий час" });
             }

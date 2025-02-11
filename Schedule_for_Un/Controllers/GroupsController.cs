@@ -95,7 +95,7 @@ namespace Schedule_for_Un.Controllers
             {
                 return NotFound();
             }
-            if (_context.Lessons.Any(l => l.GroupId == id))
+            if (_context.GroupLessons.Any(gl => gl.GroupId == id))
             {
                 return BadRequest(new { message = "Неможливо видалити групу, оскільки вона має заняття" });
             }
