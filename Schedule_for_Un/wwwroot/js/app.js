@@ -396,8 +396,28 @@ document.addEventListener("DOMContentLoaded", (event) => {
       const groupId = cell.getAttribute('data-group-id');
       const day = cell.getAttribute('data-day');
       const pair = cell.getAttribute('data-pair');
-      customModal.style.display = 'flex';
-      // showTeacherCard(1, day, pair);
+
+      try {
+        let teacher = await CheckFreeTeacher(day, pair);
+        let groups = await CheckSimilarGroup(groupId);
+        if(teacher === false)
+        {
+          showMessage("Немає вільних викладачів на цей день та час", "error", 4000);
+          return;
+        }
+        if(groups === false)
+        {
+          showMessage("Помилка вибору групи", "error", 4000);
+          return;
+        }
+        customModal.style.display = 'block';
+        openAddLessonModal(groupId, day, pair);
+        populateTeacherSelect(teacher);
+        populateGroupSelectBySpecialtyAndCourse(groups, groupId);
+      }
+      catch (error) {
+        console.error("Error populating teacher select:", error);
+      }
     }
   });
 });
@@ -656,7 +676,7 @@ function generateScheduleTable(groups, course) {
   const times = [
       "8:40-9:25 9:30-10:15", 
       "10:35-11:20 11:25-12:10", 
-      "12:30-13:05 13:10-13:55", 
+      "12:20-13:05 13:10-13:55", 
       "14:05-14:50 14:55-15:40"
   ];
   
@@ -740,126 +760,193 @@ function getDayName(dayNumber) {
   };
   return days[dayNumber] || "";
 }
+function getNumberOfPair(pair)
+{
+  const pairs = {
+    1: "Перша пара (8:40-10:15)",
+    2: "Друга пара (10:35-12:10)",
+    3: "Третя пара (12:20-13:55)",
+    4: "Четверта пара (14:05-15:40)"
+  };
+  return pairs[pair] || "";
+}
 
-// function openAddLessonModal(groupId, day, pair) {
-//   const modal = document.createElement("div");
-//   modal.id = "add-lesson-modal";
-//   modal.innerHTML = `
-//     <div class="modal-content slide-container">
-//       <button class="close-modal-btn" id="close-add-lesson">X</button>
-//       <h2>Додати пару</h2>
-//       <div class="form-and-teacher">
-//         <form id="add-lesson-form" class="lesson-form">
-//           <div class="form-group">
-//             <label for="lesson-name">Назва предмету:</label>
-//             <input type="text" id="lesson-name" name="lesson-name" required>
-//           </div>
-//           <div class="form-group">
-//             <label for="lesson-day">День:</label>
-//             <input type="text" id="lesson-day" name="lesson-day" value="${getDayName(day)}" readonly>
-//           </div>
-//           <div class="form-group">
-//             <label for="lesson-pair">Пара:</label>
-//             <input type="text" id="lesson-pair" name="lesson-pair" value="${pair}" readonly>
-//           </div>
-//           <div class="form-group">
-//             <span>Тип предмету:</span>
-//             <label class="radio-container">Лекційний
-//               <input type="radio" name="lesson-type" value="лекція" checked>
-//               <span class="checkmark"></span>
-//             </label>
-//             <label class="radio-container">Практичний
-//               <input type="radio" name="lesson-type" value="практика">
-//               <span class="checkmark"></span>
-//             </label>
-//           </div>
-//           <!-- Teacher selection moved under lesson type -->
-//           <div class="form-group">
-//             <label for="teacher-select">Вибір викладача:</label>
-//             <select id="teacher-select" name="teacher-select" required>
-//               <option value="">Оберіть викладача</option>
-//               <option value="1">Викладач 1</option>
-//               <option value="2">Викладач 2</option>
-//             </select>
-//           </div>
-//           <div class="form-group">
-//             <label for="lesson-hours">Кількість годин:</label>
-//             <input type="number" id="lesson-hours" name="lesson-hours" min="1" required>
-//           </div>
-//           <div class="form-group">
-//             <label class="checkbox-container">Консультації
-//               <input type="checkbox" id="has-consultation" name="has-consultation">
-//               <span class="checkmark"></span>
-//             </label>
-//           </div>
-//           <div class="form-group" id="consultation-hours-container" style="display: none;">
-//             <label for="consultation-hours">Кількість годин консультацій:</label>
-//             <input type="number" id="consultation-hours" name="consultation-hours" min="1">
-//           </div>
-//           <div class="form-group">
-//             <label class="checkbox-container">Тиждень парний
-//               <input type="checkbox" id="is-even-week" name="is-even-week">
-//               <span class="checkmark"></span>
-//             </label>
-//           </div>
-//           <button type="submit" class="submit-button">Додати</button>
-//         </form>
-//         <!-- Container for the teacher info card -->
-//         <div id="teacher-card" class="teacher-card hidden"></div>
-//       </div>
-//     </div>
-//   `;
-//   document.body.appendChild(modal);
+async function CheckFreeTeacher(day, pair) {
+  const response = await fetch(`/api/freehours/available-teachers?day=${day}&pair=${pair}`);
+  if (!response.ok) {
+    return false;
+  }
+  const teachers = await response.json();
+  return teachers;
+}
+async function CheckSimilarGroup(groupId) {
+  const group = await fetch(`/api/groups/${groupId}`);
+  const groupData = await group.json();
+  const specialty = groupData.specialty;
+  const course = groupData.course;
 
-//   // Close modal
-//   document.getElementById("close-add-lesson").addEventListener("click", () => {
-//     document.body.removeChild(modal);
-//   });
+  const response = await fetch(`/api/groups/similar-groups?specialty=${encodeURIComponent(specialty)}&course=${course}`);
+  if (!response.ok) {
+    return false;
+  }
+  const groups = await response.json();
+  return groups;
+}
 
-//   // Toggle multi-select (kept as before)
-//   document.querySelectorAll('input[name="lesson-type"]').forEach(radio => {
-//     radio.addEventListener("change", (e) => {
-//       const multiselect = document.getElementById("multiselect-container");
-//       if (e.target.value === "лекція") {
-//         multiselect && (multiselect.style.display = "block");
-//       } else {
-//         multiselect && (multiselect.style.display = "none");
-//       }
-//     });
-//   });
+function populateTeacherSelect(teachers) {
+  const teacherSelect = document.getElementById("teacher-select");
+  teacherSelect.innerHTML = '';
+  teachers.forEach(teacher => {
+    const option = document.createElement("option");
+    option.value = teacher.id;
+    option.textContent = teacher.fullName;
+    teacherSelect.appendChild(option);
+  });
+}
 
-//   // Consultation hours toggle
-//   document.getElementById("has-consultation").addEventListener("change", (e) => {
-//     const consultationContainer = document.getElementById("consultation-hours-container");
-//     consultationContainer.style.display = e.target.checked ? "block" : "none";
-//   });
+function populateGroupSelectBySpecialtyAndCourse(groups, groupId) {
+  const groupSelect = document.getElementById("group-select");
+  groupSelect.innerHTML = '';
 
-//   // When teacher is selected, slide lesson-form to left and show teacher card
-//   document.getElementById("teacher-select").addEventListener("change", async (e) => {
-//     const teacherId = e.target.value;
-//     if (!teacherId) return;
-    
-//     // Slide the form left via CSS class
-//     document.querySelector(".slide-container").classList.add("slide-left");
-    
-//     // Simulate fetching teacher data (as in openEditTeacherModal)
-//     let teacher;
-//     try {
-//       const response = await fetch(`/api/teachers/${teacherId}`);
-//       teacher = await response.json();
-//     } catch (error) {
-//       console.error("Error loading teacher:", error);
-//       return;
-//     }
-    
-//     // Build read-only teacher card (no close button)
-    
-// }
-// openAddLessonModal(1, 1, 1);
+  const selectedGroup = groups.find(group => group.id === groupId);
+  if (selectedGroup) {
+    const option = document.createElement("option");
+    option.value = selectedGroup.id;
+    option.textContent = selectedGroup.name;
+    option.selected = true;
+    groups.remove(selectedGroup);
+    groupSelect.appendChild(option);
+  }
 
-const teacherCard = document.getElementById("teacher-card");
+  groups.forEach(group => {
+    const option = document.createElement("option");
+    option.value = group.id;
+    option.textContent = group.name;
+    groupSelect.appendChild(option);
+  });
+}
 
-async function showTeacherCard(teacherId, day, pair) {
+function openAddLessonModal(groupId, day, pair) {
+  customModalContent.innerHTML = "";
+  
+  const modal = document.createElement("div");
+  modal.id = "add-lesson-modal";
+  modal.innerHTML = `
+    <button class="close-modal" id="close-add-lesson-overlay" type="button" title="Close modal">X</button>
+      <form id="add-lesson-form" class="lesson-form">
+        <fieldset>
+          <legend class="add-form">Додати пару</legend>
+          <label for="lesson-subject"><p>Назва предмету:</p></label>
+          <input type="text" class="input-add" id="lesson-subject" name="lesson-subject" maxlength="50" minlength="5" required placeholder="Введіть назву предмету...">
+          <label for="lesson-day"><p>День:</p></label>
+          <input type="text" class="input-add" id="lesson-day" name="lesson-day" value="${getDayName(day)}" readonly>
+          <label for="lesson-pair"><p>Пара:</p></label>
+          <input type="text" class="input-add" id="lesson-pair" name="lesson-pair" value="${getNumberOfPair(pair)}" readonly>
+          <div class="radio-container-div">
+            <label><p>Тип предмету:</p></label>
+            <label class="radio-container">
+              Лекційний
+              <input type="radio" name="lesson-isLecture" value="1">
+              <span class="checkmark"></span>
+            </label>
+            <label class="radio-container">
+              Практичний
+              <input type="radio" name="lesson-isLecture" value="0">
+              <span class="checkmark"></span>
+            </label>
+          </div>
+          <label for="teacher-select"><p>Вибір викладача:</p></label>
+          <select id="teacher-select" class="input-add" name="lesson-teacher" disabled></select>
+          <label for="group-select"><p>Вибір групи:</p></label>
+          <select id="group-select" class="input-add" name="lesson-group" disabled></select>
+          <label for="lesson-hours"><p>Кількість годин:</p></label>
+          <input type="number" class="input-add" id="lesson-hours" placeholder="Введіть кількість годин предмету..." name="lesson-hours" min="1" required>
+          <label class="checkbox-container">Консультації
+            <input type="checkbox" id="has-consultation" name="lesson-has-consultation">
+            <span class="checkmark"></span>
+          </label>
+          <div id="consultation-hours-container" style="display: none;">
+            <label for="consultation-hours"><p>Кількість годин консультацій:</p></label>
+            <input type="number" class="input-add" id="consultation-hours" placeholder="Введіть кількість годин консультацій..." name="lesson-consultation-hours" min="1">
+          </div>
+          <label class="checkbox-container">Тиждень парний
+            <input type="checkbox" id="is-even-week" name="lesson-is-even-week">
+            <span class="checkmark"></span>
+          </label>
+        </fieldset>
+        <button type="submit" class="submit-button">Додати</button>
+      </form>
+  `;
+  customModalContent.appendChild(modal);
+  
+  const consultationContainer = document.getElementById("consultation-hours-container");
+  const teacherSelect = document.getElementById("teacher-select");
+  const groupSelect = document.getElementById("group-select");
+  const closeAddLessonOverlay = document.getElementById("close-add-lesson-overlay");
+
+  document.getElementById("has-consultation").addEventListener("change", (e) => {
+    consultationContainer.style.display = e.target.checked ? "block" : "none";
+  });
+
+  document.querySelectorAll('input[name="lesson-isLecture"]').forEach(radio => {
+    radio.addEventListener("change", (e) => {
+     teacherSelect.disabled = false;
+  
+      if (e.target.value === "1") {
+        teacherSelect.multiple = false;
+        groupSelect.multiple = true;
+        groupSelect.disabled = false;
+      } else {
+        teacherSelect.multiple = true;
+        groupSelect.multiple = false;
+        groupSelect.selectedIndex = 0;
+        groupSelect.disabled = true;
+      }
+
+      if (teacherSelect.options.length > 0) {
+        const firstTeacherId = teacherSelect.options[0].value;
+        teacherCardsContainer.innerHTML = '';
+  
+        const teacherCard = document.createElement("div");
+        teacherCard.classList.add("teacher-card");
+        teacherCard.id = `teacher-card-${firstTeacherId}`;
+        teacherCardsContainer.appendChild(teacherCard);
+        showTeacherCard(firstTeacherId, day, pair, teacherCard.id);
+  
+        addLessonContentWithTeacher();
+      }
+    });
+  });
+
+  teacherSelect.addEventListener("change", async () => {
+    let selectedTeachers = Array.from(teacherSelect.selectedOptions).map(option => option.value);
+
+    if (selectedTeachers.length > 2) {
+      showMessage("Відображаються лише два останні профілі викладачів", "warning", 4000);
+      selectedTeachers = selectedTeachers.slice(-2);
+    }
+
+    teacherCardsContainer.innerHTML = '';
+
+    for (const teacherId of selectedTeachers) {
+      const teacherCard = document.createElement("div");
+      teacherCard.classList.add("teacher-card");
+      teacherCard.id = `teacher-card-${teacherId}`;
+      teacherCardsContainer.appendChild(teacherCard);
+      await showTeacherCard(teacherId, day, pair, teacherCard.id);
+    }
+    addLessonContentWithTeacher();
+  });
+
+  closeAddLessonOverlay.addEventListener('click', () => {
+    customModal.style.display = 'none';
+    teacherCardsContainer.innerHTML = '';
+    disableLessonContentWithTeacher();
+  });
+}
+
+async function showTeacherCard(teacherId, day, pair, cardId) {
+  const teacherCard = document.getElementById(cardId);
   try {
     const responseTeacher = await fetch(`/api/teachers/${teacherId}`);
     const teacher = await responseTeacher.json();
@@ -879,34 +966,34 @@ async function showTeacherCard(teacherId, day, pair) {
           </tr>
         </thead>
         <tbody>
-          ${generateTeacherCardScheduleTable()}
+          ${generateTeacherCardScheduleTable(cardId)}
         </tbody>
       </table>
     `;
 
-    await highlightTeacherCardFreeHours(teacherId, day, pair);
+    await highlightTeacherCardFreeHours(teacherId, day, pair, cardId);
 
   } catch (error) {
     console.error("Error loading teacher:", error);
   }
-  teacherCard.style.display = "block";
+  teacherCard.classList.add("show");
 }
 
-function generateTeacherCardScheduleTable() {
+function generateTeacherCardScheduleTable(cardId) {
   const times = ["1", "2", "3", "4"];
   return times.map(time => `
     <tr>
       <td>${time}</td>
-      <td id="teacher-card-cell-1-${time}" class="teacher-card-time-cell"></td>
-      <td id="teacher-card-cell-2-${time}" class="teacher-card-time-cell"></td>
-      <td id="teacher-card-cell-3-${time}" class="teacher-card-time-cell"></td>
-      <td id="teacher-card-cell-4-${time}" class="teacher-card-time-cell"></td>
-      <td id="teacher-card-cell-5-${time}" class="teacher-card-time-cell"></td>
+      <td id="${cardId}-cell-1-${time}" class="teacher-card-time-cell"></td>
+      <td id="${cardId}-cell-2-${time}" class="teacher-card-time-cell"></td>
+      <td id="${cardId}-cell-3-${time}" class="teacher-card-time-cell"></td>
+      <td id="${cardId}-cell-4-${time}" class="teacher-card-time-cell"></td>
+      <td id="${cardId}-cell-5-${time}" class="teacher-card-time-cell"></td>
     </tr>
   `).join('');
 }
 
-async function highlightTeacherCardFreeHours(teacherId, day, pair) {
+async function highlightTeacherCardFreeHours(teacherId, day, pair, cardId) {
   try {
     const response = await fetch(`/api/freehours/teacher/${teacherId}`);
     if (!response.ok) {
@@ -915,17 +1002,19 @@ async function highlightTeacherCardFreeHours(teacherId, day, pair) {
     const freeHours = await response.json();
 
     freeHours.forEach(freeHour => {
-      const cellId = `teacher-card-cell-${freeHour.day}-${freeHour.numberOfPair}`;
+      const cellId = `${cardId}-cell-${freeHour.day}-${freeHour.numberOfPair}`;
       const cell = document.getElementById(cellId);
       if (cell) {
         cell.classList.add('selected');
       }
     });
 
-    const highlightCellId = `teacher-card-cell-${day}-${pair}`;
-    const highlightCell = document.getElementById(highlightCellId);
-    if (highlightCell) {
-      highlightCell.classList.add('highlight');
+    if (day && pair) {
+      const highlightCellId = `${cardId}-cell-${day}-${pair}`;
+      const highlightCell = document.getElementById(highlightCellId);
+      if (highlightCell) {
+        highlightCell.classList.add('highlight');
+      }
     }
 
   } catch (error) {
@@ -933,15 +1022,26 @@ async function highlightTeacherCardFreeHours(teacherId, day, pair) {
   }
 }
 
-const customModal = document.getElementById('add-lesson-overlay');
-const closeAddLessonOverlay = document.getElementById('close-add-lesson-overlay');
+// ---overlay for add lesson ---------------------
+const teacherCardsContainer = document.getElementById("teacher-cards-container");
+const addLessonContent = document.getElementById("add-lesson-content");
 
-closeAddLessonOverlay.addEventListener('click', () => {
-  customModal.style.display = 'none';
-});
+const customModal = document.getElementById('add-lesson-overlay');
+const customModalContent = document.getElementById('add-lesson-content');
 
 window.addEventListener('click', (event) => {
   if (event.target === customModal) {
     customModal.style.display = 'none';
+    teacherCardsContainer.innerHTML = '';
+    disableLessonContentWithTeacher();
   }
 });
+
+function addLessonContentWithTeacher() {
+  const lessonContent = document.querySelector('.add-lesson-content');
+  lessonContent.classList.add('add-lesson-content-with-teacher');
+}
+function disableLessonContentWithTeacher() {
+  const lessonContent = document.querySelector('.add-lesson-content');
+  lessonContent.classList.remove('add-lesson-content-with-teacher');
+}

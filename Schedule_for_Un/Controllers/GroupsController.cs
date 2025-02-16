@@ -39,6 +39,21 @@ namespace Schedule_for_Un.Controllers
             return group;
         }
 
+        [HttpGet("similar-groups")]
+        public async Task<ActionResult<IEnumerable<Group>>> GetSimilarGroups(string specialty, byte course)
+        {
+            var similarGroups = await _context.Groups
+                .Where(g => g.Specialty == specialty && g.Course == course)
+                .ToListAsync();
+
+            if (similarGroups == null || similarGroups.Count == 0)
+            {
+                return NotFound();
+            }
+
+            return similarGroups;
+        }
+
         [HttpPut("{id}")]
         public async Task<IActionResult> PutGroup(int id, Group group)
         {

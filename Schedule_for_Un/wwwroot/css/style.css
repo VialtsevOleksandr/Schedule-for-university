@@ -487,7 +487,7 @@ button:disabled {
 /* Message window */
 .message-window {
     display: none;
-    position: absolute;
+    position: fixed;
     top: 20px;
     left: 50%;
     transform: translateX(-50%);
@@ -504,7 +504,7 @@ button:disabled {
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.5s ease-in-out, visibility 0.5s;
-    z-index: 1000;
+    z-index: 10000;
 }
 .success {
     background: rgb(208, 255, 208);
@@ -513,6 +513,10 @@ button:disabled {
 .error {
     background: rgb(250, 209, 207);
     border: 3px solid rgba(255, 0, 0, 0.5);
+}
+.warning {
+    background: rgb(255, 255, 208);
+    border: 3px solid rgba(255, 255, 0, 0.5);
 }
 .show {
     opacity: 1;
@@ -585,20 +589,37 @@ button:disabled {
 }
 
 /* teacher card */
-.teacher-card {
-    display: none;
-    position: fixed;
+#teacher-cards-container {
+    position: absolute;
     top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: auto;
-    max-width: 800px;
+    right: 0;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 5px;
+  }
+.teacher-card {
+    box-sizing: border-box;
+    display: block;
+    visibility: hidden;
+    width: 600px;
+    height: 280px;
     background-color: #fff;
     border: 1px solid #ddd;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    padding: 20px;
+    padding: 10px;
     font-family: "Sofia Sans", sans-serif;
+    opacity: 0;
+    transform: translateX(50px);
+    transition: opacity 1s ease, transform 1s ease;
+}
+.teacher-card.show {
+    visibility: visible;
+    opacity: 1;
+    transform: translateX(0);
 }
 i {
     font-style: italic;
@@ -640,20 +661,20 @@ i {
     background-color: #4ac34c;
 }
 .teacher-card-time-cell.highlight {
-    background-color: #eeff54;
-    border: 2px solid gold;
-    animation: glow 1.5s infinite;
+    /* background-color: #eeff54; */
+    border: 3px solid gold;
+    animation: glow 1s infinite;
 }
   
 @keyframes glow {
     0% {
-      box-shadow: 0 0 5px gold;
+      box-shadow: 0 0 10px gold;
     }
     50% {
-      box-shadow: 0 0 30px gold;
+      box-shadow: 0 0 40px gold;
     }
     100% {
-      box-shadow: 0 0 5px gold;
+      box-shadow: 0 0 10px gold;
     }
 }
 /* add lesson */
@@ -666,14 +687,143 @@ i {
     background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(5px);
     display: none;
-    justify-content: center;
-    align-items: center;
     z-index: 1000;
 }
 .add-lesson-content {
+    display: flex;
+    flex-direction: column;
     position: relative;
+    box-sizing: border-box;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 30vw;
+    min-width: 350px;
+    max-height: 100%;
     background: white;
-    padding: 20px;
+    padding: 15px;
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    font-family: "Sofia Sans", sans-serif;
+}
+
+.add-lesson-content-with-teacher {
+    position: relative;
+    top: 50%;
+    left: calc((100% - 610px) / 2);
+    transform: translate(-50%, -50%);
+    transition: top 1s ease, left 1s ease, transform 1s ease;
+}
+
+/* Стиль для кастомного чекбоксу */
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    font-size: 16px;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    padding-left: 35px;
+    margin-block: 5px 10px;
+}
+
+.checkbox-container input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.checkbox-container .checkmark {
+    box-sizing: border-box;
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    background-color: #fff;
+    border: 1px solid #007bff;
+    border-radius: 4px;
+    transition: all 0.3s;
+}
+
+.checkbox-container:hover .checkmark {
+    background-color: #f0f8ff;
+}
+
+.checkbox-container input:checked + .checkmark {
+    background-color: #007bff;
+    border-color: #0056b3;
+}
+
+.checkbox-container input:checked + .checkmark::after {
+    content: "";
+    position: absolute;
+    left: 6px;
+    top: 2px;
+    width: 6px;
+    height: 12px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+/* Стиль для кастомної радіокнопки */
+.radio-container-div {
+    display: flex;
+    flex-direction: row;
+    margin-block: 10px;
+    gap: 10px;
+}
+.radio-container {
+    display: flex;
+    align-items: center;
+    font-size: 16px;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    padding-left: 25px;
+}
+
+.radio-container input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.radio-container .checkmark {
+    box-sizing: border-box;
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    background-color: #fff;
+    border: 1px solid #007bff;
+    border-radius: 50%;
+    transition: all 0.3s;
+}
+
+.radio-container:hover .checkmark {
+    background-color: #f0f8ff;
+}
+
+.radio-container input:checked + .checkmark {
+    border-color: #0056b3;
+    background-color: #007bff;
+}
+
+.radio-container input:checked + .checkmark::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    background-color: #fff;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
 }

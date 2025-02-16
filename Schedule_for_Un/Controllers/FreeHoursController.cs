@@ -50,6 +50,22 @@ namespace Schedule_for_Un.Controllers
 
             return freeHours;
         }
+        [HttpGet("available-teachers")]
+        public async Task<ActionResult<IEnumerable<Teacher>>> GetAvailableTeachers(int day, int pair)
+        {
+            var availableTeachers = await _context.FreeHours
+                .Where(fh => fh.Day == day && fh.NumberOfPair == pair && fh.IsFree)
+                .Select(fh => fh.Teacher!)
+                .Distinct()
+                .ToListAsync();
+
+            if (availableTeachers == null || availableTeachers.Count == 0)
+            {
+                return NotFound();
+            }
+
+            return availableTeachers;
+        }
 
         [HttpPost]
         public async Task<ActionResult<FreeHour>> PostFreeHour(FreeHour freeHour)
