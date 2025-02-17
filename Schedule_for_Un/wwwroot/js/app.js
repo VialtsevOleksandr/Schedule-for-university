@@ -879,11 +879,12 @@ function openAddLessonModal(groupId, day, pair) {
   `;
   customModalContent.appendChild(modal);
   
+  const addLessonForm = document.getElementById("add-lesson-form");
   const consultationContainer = document.getElementById("consultation-hours-container");
   const teacherSelect = document.getElementById("teacher-select");
   const groupSelect = document.getElementById("group-select");
   const closeAddLessonOverlay = document.getElementById("close-add-lesson-overlay");
-
+  
   document.getElementById("has-consultation").addEventListener("change", (e) => {
     consultationContainer.style.display = e.target.checked ? "block" : "none";
   });
@@ -899,7 +900,7 @@ function openAddLessonModal(groupId, day, pair) {
       } else {
         teacherSelect.multiple = true;
         groupSelect.multiple = false;
-        groupSelect.selectedIndex = 0;
+        selectGroupById(groupSelect, groupId);
         groupSelect.disabled = true;
       }
 
@@ -943,6 +944,64 @@ function openAddLessonModal(groupId, day, pair) {
     teacherCardsContainer.innerHTML = '';
     disableLessonContentWithTeacher();
   });
+
+  addLessonForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+  
+    const formData = new FormData(addLessonForm);
+
+    const getSelectedValues = (selectElement) => {
+      return Array.from(selectElement.selectedOptions).map(option => option.value);
+    };
+
+    const lessonData = {
+      lesson: {
+        day: day,
+        numberOfPair: pair,
+        subject: formData.get("lesson-subject"),
+        hoursOfSubject: formData.get("lesson-hours"),
+        hoursOfConsultation: formData.get("lesson-consultation-hours") || null,
+        haveConsultation: formData.get("lesson-has-consultation") === 'on' ? true : false,
+        isLecture: formData.get("lesson-isLecture") === '1' ? true : false,
+        isEvenWeek: formData.get("lesson-is-even-week") === 'on' ? true : false
+      },
+      teacherIds: getSelectedValues(document.querySelector("select[name='lesson-teacher']")),
+      groupIds: getSelectedValues(document.querySelector("select[name='lesson-group']"))
+    };
+    
+    console.log(lessonData);
+
+    try {
+      const response = await fetch('/api/lessons/with-details', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(lessonData)
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        showMessage(errorData.message || "Помилка додавання заняття!", "error", 2000);
+        throw new Error('Server error');
+      }
+  
+      const newLesson = await response.json();
+      
+    } catch (error) {
+      console.error("There was a problem with the fetch operation:", error);
+    }
+  });
+
+}
+
+function selectGroupById(groupSelect, groupId) {
+  for (let i = 0; i < groupSelect.options.length; i++) {
+    if (groupSelect.options[i].value == groupId) {
+      groupSelect.selectedIndex = i;
+      break;
+    }
+  }
 }
 
 async function showTeacherCard(teacherId, day, pair, cardId) {

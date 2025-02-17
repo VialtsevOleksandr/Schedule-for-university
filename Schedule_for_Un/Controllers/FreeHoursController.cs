@@ -38,18 +38,41 @@ namespace Schedule_for_Un.Controllers
             return freeHour;
         }
 
+        // [HttpGet("teacher/{teacherId}")]
+        // public async Task<ActionResult<IEnumerable<FreeHour>>> GetFreeHoursByTeacherId(int teacherId)
+        // {
+        //     var freeHours = await _context.FreeHours.Where(fh => fh.TeacherId == teacherId).ToListAsync();
+
+        //     if (freeHours == null || !freeHours.Any())
+        //     {
+        //     return NotFound();
+        //     }
+
+        //     return freeHours;
+        // }
+
         [HttpGet("teacher/{teacherId}")]
-        public async Task<ActionResult<IEnumerable<FreeHour>>> GetFreeHoursByTeacherId(int teacherId)
+        public async Task<ActionResult<object>> GetFreeHoursByTeacherId(int teacherId)
         {
-            var freeHours = await _context.FreeHours.Where(fh => fh.TeacherId == teacherId).ToListAsync();
+            var freeHours = await _context.FreeHours
+                .Where(fh => fh.TeacherId == teacherId)
+                .ToListAsync();
 
             if (freeHours == null || !freeHours.Any())
             {
-            return NotFound();
+                return NotFound();
             }
 
-            return freeHours;
+            var availableHours = freeHours.Where(fh => fh.IsFree).ToList();
+            var occupiedHours = freeHours.Where(fh => !fh.IsFree).ToList();
+
+            return Ok(new
+            {
+                AvailableHours = availableHours,
+                OccupiedHours = occupiedHours
+            });
         }
+        
         [HttpGet("available-teachers")]
         public async Task<ActionResult<IEnumerable<Teacher>>> GetAvailableTeachers(int day, int pair)
         {
