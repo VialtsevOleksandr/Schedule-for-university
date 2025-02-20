@@ -59,13 +59,28 @@ namespace Schedule_for_Un.Controllers
             return lessons;
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutLesson(int id, Lesson lesson)
+        public class LessonUpdateDto
         {
-            if (id != lesson.Id)
+            public string Subject { get; set; } = string.Empty;
+            public byte HoursOfSubject { get; set; }
+            public bool HaveConsultation { get; set; }
+            public byte? HoursOfConsultation { get; set; }
+        }
+
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> PutLesson(int id, LessonUpdateDto lessonUpdateDto)
+        {
+            var lesson = await _context.Lessons.FindAsync(id);
+            if (lesson == null)
             {
-                return BadRequest();
+                return NotFound();
             }
+
+            lesson.Subject = lessonUpdateDto.Subject;
+            lesson.HoursOfSubject = lessonUpdateDto.HoursOfSubject;
+            lesson.HaveConsultation = lessonUpdateDto.HaveConsultation;
+            lesson.HoursOfConsultation = lessonUpdateDto.HoursOfConsultation;
 
             _context.Entry(lesson).State = EntityState.Modified;
 
@@ -91,128 +106,55 @@ namespace Schedule_for_Un.Controllers
         [HttpDelete("{id}")]
         public async Task<ActionResult<Lesson>> DeleteLesson(int id)
         {
-            var lesson = await _context.Lessons.FindAsync(id);
-            if (lesson == null)
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
             {
-                return NotFound();
+                var lesson = await _context.Lessons.FindAsync(id);
+                if (lesson == null)
+                {
+                    return NotFound();
+                }
+
+                var groupLessons = await _context.GroupLessons
+                    .Where(gl => gl.LessonId == id)
+                    .ToListAsync();
+                
+                var teacherLessons = await _context.TeacherLessons
+                    .Where(tl => tl.LessonId == id)
+                    .ToListAsync();
+                
+                foreach (var teacherId in teacherLessons.Select(tl => tl.TeacherId))
+                {
+                    var teacherFreeHours = _context.FreeHours
+                        .Where(fh => fh.TeacherId == teacherId && fh.LessonId == id)
+                        .ToList();
+                    foreach (var teacherFreeHour in teacherFreeHours)
+                    {
+                        teacherFreeHour.IsFree = true;
+                        teacherFreeHour.LessonId = null;
+                    }
+                    await _context.SaveChangesAsync();
+                }
+
+                _context.GroupLessons.RemoveRange(groupLessons);
+                _context.TeacherLessons.RemoveRange(teacherLessons);
+
+                _context.Lessons.Remove(lesson);
+                await _context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+
+                return lesson;
             }
-
-            _context.Lessons.Remove(lesson);
-            await _context.SaveChangesAsync();
-
-            return lesson;
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
-
         private bool LessonExists(int id)
         {
             return _context.Lessons.Any(e => e.Id == id);
-        }
-
-        [HttpGet("group-lessons/{lessonId}")]
-        public async Task<ActionResult<IEnumerable<GroupLesson>>> GetGroupLessons(int lessonId)
-        {
-            var groupLessons = await _context.GroupLessons
-            .Where(gl => gl.LessonId == lessonId)
-            .ToListAsync();
-
-            if (groupLessons == null || !groupLessons.Any())
-            {
-            return NotFound();
-            }
-
-            return groupLessons;
-        }
-
-        [HttpGet("teacher-lessons/{lessonId}")]
-        public async Task<ActionResult<IEnumerable<TeacherLesson>>> GetTeacherLessons(int lessonId)
-        {
-            var teacherLessons = await _context.TeacherLessons
-            .Where(tl => tl.LessonId == lessonId)
-            .ToListAsync();
-
-            if (teacherLessons == null || !teacherLessons.Any())
-            {
-            return NotFound();
-            }
-
-            return teacherLessons;
-        }
-
-        // [HttpPost("group-lessons")]
-        // public async Task<ActionResult<IEnumerable<GroupLesson>>> PostGroupLessons(int lessonId, List<int> groupIds)
-        // {
-        //     var groupLessons = groupIds.Select(groupId => new GroupLesson
-        //     {
-        //         LessonId = lessonId,
-        //         GroupId = groupId
-        //     }).ToList();
-
-        //     _context.GroupLessons.AddRange(groupLessons);
-        //     await _context.SaveChangesAsync();
-
-        //     return CreatedAtAction(nameof(GetGroupLessons), new { lessonId = lessonId }, groupLessons);
-        // }
-
-        // [HttpPost("teacher-lessons")]
-        // public async Task<ActionResult<IEnumerable<TeacherLesson>>> PostTeacherLessons(int lessonId, List<int> teacherIds)
-        // {
-        //     var teacherLessons = teacherIds.Select(teacherId => new TeacherLesson
-        //     {
-        //         LessonId = lessonId,
-        //         TeacherId = teacherId
-        //     }).ToList();
-
-        //     _context.TeacherLessons.AddRange(teacherLessons);
-        //     await _context.SaveChangesAsync();
-
-        //     var teacherFreeHours = _context.FreeHours
-        //         .Where(fh => teacherIds.Contains(fh.TeacherId))
-        //         .ToList();
-            
-        //     foreach (var teacherFreeHour in teacherFreeHours)
-        //     {
-        //         teacherFreeHour.IsFree = false;
-        //         teacherFreeHour.LessonId = lessonId;
-        //     }
-        //     await _context.SaveChangesAsync();
-            
-        //     return CreatedAtAction(nameof(GetTeacherLessons), new { lessonId = lessonId }, teacherLessons);
-        // }
-
-        [HttpDelete("group-lessons/{lessonId}")]
-        public async Task<IActionResult> DeleteGroupLessons(int lessonId)
-        {
-            var groupLessons = await _context.GroupLessons
-                .Where(gl => gl.LessonId == lessonId)
-                .ToListAsync();
-
-            if (groupLessons == null || !groupLessons.Any())
-            {
-                return NotFound();
-            }
-
-            _context.GroupLessons.RemoveRange(groupLessons);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        [HttpDelete("teacher-lessons/{lessonId}")]
-        public async Task<IActionResult> DeleteTeacherLessons(int lessonId)
-        {
-            var teacherLessons = await _context.TeacherLessons
-                .Where(tl => tl.LessonId == lessonId)
-                .ToListAsync();
-
-            if (teacherLessons == null || !teacherLessons.Any())
-            {
-                return NotFound();
-            }
-
-            _context.TeacherLessons.RemoveRange(teacherLessons);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
         }
 
         public class LessonWithDetails
@@ -240,7 +182,7 @@ namespace Schedule_for_Un.Controllers
                 {
                     return BadRequest(new { message = "Не вказано викладачів або групи" });
                 }
-                
+
                 var conflictingGroup = _context.Lessons
                     .Where(l => l.GroupLessons.Any(gl => groupIds.Contains(gl.GroupId)) && l.Day == lesson.Day && l.NumberOfPair == lesson.NumberOfPair)
                     .SelectMany(l => l.GroupLessons)

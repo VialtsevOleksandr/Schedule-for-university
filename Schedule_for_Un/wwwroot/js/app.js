@@ -509,7 +509,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
       try {
         let teacher = await CheckFreeTeacher(day, pair);
-        let groups = await CheckSimilarGroup(groupId);
+        let groups = await CheckSimilarGroup(groupId, day, pair);
         if(teacher === false)
         {
           showMessage("Немає вільних викладачів на цей день та час", "error", 4000);
@@ -666,6 +666,15 @@ const closeDeleteModalButton = document.getElementById("close-delete-modal");
 const confirmDeleteButton = document.getElementById("confirm-delete-button");
 const deleteConfirmationText = document.getElementById("delete-confirmation-text");
 
+function openDeleteLessonModal(lessonId) {
+  deleteModalWindow.setAttribute("data-lesson-id", lessonId);
+  deleteConfirmationText.textContent = `Ви впевнені, що хочете видалити заняття?`;
+  deleteModalWindow.style.display = "block";
+  header.classList.add("blur");
+  container.classList.add("blur");
+  disabledButton();
+}
+
 function openDeleteGroupModal(groupId) {
   deleteModalWindow.setAttribute("data-group-id", groupId);
   deleteConfirmationText.textContent = `Ви впевнені, що хочете видалити групу?`;
@@ -690,11 +699,9 @@ function closeDeleteModal() {
   header.classList.remove("blur");
   container.classList.remove("blur");
   enabledButton();
-  if (deleteModalWindow.hasAttribute("data-group-id")) {
-    deleteModalWindow.removeAttribute("data-group-id");
-  } else {
-    deleteModalWindow.removeAttribute("data-teacher-id");
-  }
+  deleteModalWindow.removeAttribute("data-group-id");
+  deleteModalWindow.removeAttribute("data-teacher-id");
+  deleteModalWindow.removeAttribute("data-lesson-id");
 }
 
 closeDeleteModalButton.addEventListener("click", closeDeleteModal);
@@ -702,11 +709,12 @@ closeDeleteModalButton.addEventListener("click", closeDeleteModal);
 confirmDeleteButton.addEventListener("click", async () => {
   const groupIdToDelete = deleteModalWindow.getAttribute("data-group-id");
   const teacherIdToDelete = deleteModalWindow.getAttribute("data-teacher-id");
+  const lessonIdToDelete = deleteModalWindow.getAttribute("data-lesson-id");
 
-  if (!groupIdToDelete && !teacherIdToDelete) return;
+  if (!groupIdToDelete && !teacherIdToDelete && !lessonIdToDelete) return;
 
-  const url = groupIdToDelete ? `/api/groups/${groupIdToDelete}` : `/api/teachers/${teacherIdToDelete}`;
-  const entity = groupIdToDelete ? "групи" : "викладача";
+  const url = lessonIdToDelete ? `/api/lessons/${lessonIdToDelete}` : groupIdToDelete ? `/api/groups/${groupIdToDelete}` : `/api/teachers/${teacherIdToDelete}`;
+  const entity = lessonIdToDelete ? "заняття" : groupIdToDelete ? "групи" : "викладача";
 
   try {
     const response = await fetch(url, {
@@ -723,8 +731,10 @@ confirmDeleteButton.addEventListener("click", async () => {
     if (groupIdToDelete) {
       loadGroups();
       loadSchedule();
-    } else {
+    } else if (teacherIdToDelete) {
       loadTeachers();
+    } else if (lessonIdToDelete) {
+      loadSchedule();
     }
     closeDeleteModal();
 
@@ -839,14 +849,14 @@ function generateScheduleTable(groups, course, lessons) {
           
           // кнопки редагування та видалення
           const editButton = `
-            <button class="icon-button edit-button" title="Edit" type="button" onclick="editLesson(${lesson.id})">
+            <button class="icon-button edit-button" title="Edit" type="button" onclick="openEditLessonModal(${lesson.id})">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon">
                 <path d="M12 20h9"></path>
                 <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path>
               </svg>
             </button>`;
           const deleteButton = `
-            <button class="icon-button delete-button" title="Delete" type="button" onclick="deleteLesson(${lesson.id})">
+            <button class="icon-button delete-button" title="Delete" type="button" onclick="openDeleteLessonModal(${lesson.id})">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon">
                 <path d="M3 6h18"></path>
                 <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
@@ -957,13 +967,13 @@ async function CheckFreeTeacher(day, pair) {
   const teachers = await response.json();
   return teachers;
 }
-async function CheckSimilarGroup(groupId) {
+async function CheckSimilarGroup(groupId, day, pair) {
   const group = await fetch(`/api/groups/${groupId}`);
   const groupData = await group.json();
   const specialty = groupData.specialty;
   const course = groupData.course;
 
-  const response = await fetch(`/api/groups/similar-groups?specialty=${encodeURIComponent(specialty)}&course=${course}`);
+  const response = await fetch(`/api/groups/similar-groups?specialty=${encodeURIComponent(specialty)}&course=${course}&day=${day}&pair=${pair}`);
   if (!response.ok) {
     return false;
   }
@@ -1185,6 +1195,113 @@ function openAddLessonModal(groupId, day, pair) {
     }
   });
 
+}
+
+function openEditLessonModal(lessonId) {
+  customModalContent.innerHTML = "";
+
+  const modal = document.createElement("div");
+  modal.id = "edit-lesson-modal";
+  modal.innerHTML = `
+    <button class="close-modal" id="close-edit-lesson-overlay" type="button" title="Close modal">X</button>
+    <form id="edit-lesson-form" class="lesson-form">
+      <fieldset>
+        <legend class="add-form">Редагувати пару</legend>
+        <label for="edit-lesson-subject"><p>Назва предмету:</p></label>
+        <input type="text" class="input-add" id="edit-lesson-subject" name="lesson-subject" maxlength="50" minlength="5" required placeholder="Введіть назву предмету...">
+        <label for="edit-lesson-hours"><p>Кількість годин:</p></label>
+        <input type="number" class="input-add" id="edit-lesson-hours" placeholder="Введіть кількість годин предмету..." name="lesson-hours" min="6" required>
+        <label class="checkbox-container">Консультації
+          <input type="checkbox" id="edit-has-consultation" name="lesson-has-consultation">
+          <span class="checkmark"></span>
+        </label>
+        <div id="edit-consultation-hours-container" style="display: none;">
+          <label for="edit-consultation-hours"><p>Кількість годин консультацій:</p></label>
+          <input type="number" class="input-add" id="edit-consultation-hours" placeholder="Введіть кількість годин консультацій..." name="lesson-consultation-hours" min="1">
+        </div>
+      </fieldset>
+      <button type="submit" class="submit-button">Зберегти</button>
+    </form>
+  `;
+  customModalContent.appendChild(modal);
+
+  const editLessonForm = document.getElementById("edit-lesson-form");
+  const consultationContainer = document.getElementById("edit-consultation-hours-container");
+  const closeEditLessonOverlay = document.getElementById("close-edit-lesson-overlay");
+
+  document.getElementById("edit-has-consultation").addEventListener("change", (e) => {
+    consultationContainer.style.display = e.target.checked ? "block" : "none";
+  });
+
+  closeEditLessonOverlay.addEventListener('click', () => {
+    customModal.style.display = 'none';
+  });
+
+  let initialLessonData = [];
+
+  fetch(`/api/lessons/${lessonId}`)
+    .then(response => response.json())
+    .then(lesson => {
+      document.getElementById("edit-lesson-subject").value = lesson.subject;
+      document.getElementById("edit-lesson-hours").value = lesson.hoursOfSubject;
+      document.getElementById("edit-has-consultation").checked = lesson.haveConsultation;
+      if (lesson.haveConsultation) {
+        consultationContainer.style.display = "block";
+        document.getElementById("edit-consultation-hours").value = lesson.hoursOfConsultation;
+      }
+      initialLessonData = {
+        subject: String(lesson.subject),
+        hoursOfSubject: String(lesson.hoursOfSubject),
+        hoursOfConsultation: lesson.hoursOfConsultation ? String(lesson.hoursOfConsultation) : "",
+        haveConsultation: Boolean(lesson.haveConsultation),
+      };
+    })
+    .catch(error => {
+      console.error("Error loading lesson:", error);
+    });
+
+  editLessonForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const formData = new FormData(editLessonForm);
+
+    const lessonData = {
+      subject: formData.get("lesson-subject"),
+      hoursOfSubject: formData.get("lesson-hours"),
+      hoursOfConsultation: formData.get("lesson-consultation-hours") || null,
+      haveConsultation: formData.get("lesson-has-consultation") === 'on' ? true : false
+    };
+
+    if (JSON.stringify(lessonData) === JSON.stringify(initialLessonData)) {
+      showMessage("Ви не внесли жодних змін!", "error", 2000);
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/lessons/${lessonId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(lessonData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        showMessage(errorData.message || "Помилка редагування заняття!", "error", 2000);
+        throw new Error('Server error');
+      }
+
+      closeEditLessonOverlay.click();
+      showMessage("Пару успішно відредаговано!", "success", 2000);
+      loadSchedule();
+
+    } catch (error) {
+      console.error("There was a problem with the fetch operation:", error);
+    }
+  });
+
+  customModal.style.display = 'block';
 }
 
 function selectGroupById(groupSelect, groupId) {

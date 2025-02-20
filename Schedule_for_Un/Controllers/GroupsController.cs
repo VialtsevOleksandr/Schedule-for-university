@@ -40,10 +40,10 @@ namespace Schedule_for_Un.Controllers
         }
 
         [HttpGet("similar-groups")]
-        public async Task<ActionResult<IEnumerable<Group>>> GetSimilarGroups(string specialty, byte course)
+        public async Task<ActionResult<IEnumerable<Group>>> GetSimilarGroups(string specialty, byte course, byte day, byte pair)
         {
             var similarGroups = await _context.Groups
-                .Where(g => g.Specialty == specialty && g.Course == course)
+                .Where(g => g.Specialty == specialty && g.Course == course && !_context.Lessons.Any(l => l.Day == day && l.NumberOfPair == pair && l.GroupLessons.Any(gl => gl.GroupId == g.Id)))
                 .ToListAsync();
 
             if (similarGroups == null || similarGroups.Count == 0)
