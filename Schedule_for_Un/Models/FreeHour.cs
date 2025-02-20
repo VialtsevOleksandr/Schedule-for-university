@@ -10,6 +10,7 @@ namespace Schedule_for_Un.Models
         public byte Day { get; set; }
         public byte NumberOfPair { get; set; }
         public bool IsFree { get; set; } // true - нема пари(вільна), false - є пара(зайнята)
+        // public bool? IsEvenWeek { get; set; } // true - пара на парному тижні, false - пара на непарному тижні, null - пара кожного тижня
         public int TeacherId { get; set; }
 
         [JsonIgnore]

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Schedule_for_Un.Models
 {
@@ -13,9 +14,11 @@ namespace Schedule_for_Un.Models
         public byte? HoursOfConsultation { get; set; }
         public bool HaveConsultation { get; set; }
         public bool IsLecture { get; set; }
-        public bool IsEvenWeek { get; set; }
+        public bool? IsEvenWeek { get; set; }
         public virtual ICollection<GroupLesson> GroupLessons { get; set; } = new List<GroupLesson>();
         public virtual ICollection<TeacherLesson> TeacherLessons { get; set; } = new List<TeacherLesson>();
+
+        [JsonIgnore]
         public virtual ICollection<FreeHour> FreeHours { get; set; } = new List<FreeHour>();
         
     }

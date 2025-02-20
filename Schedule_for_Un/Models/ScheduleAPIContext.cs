@@ -59,7 +59,7 @@ public class ScheduleAPIContext : DbContext
             entity.Property(e => e.HoursOfConsultation).HasColumnType("tinyint").IsRequired(false);
             entity.Property(e => e.HaveConsultation).IsRequired().HasColumnType("bit");
             entity.Property(e => e.IsLecture).IsRequired().HasColumnType("bit");
-            entity.Property(e => e.IsEvenWeek).IsRequired().HasColumnType("bit");
+            entity.Property(e => e.IsEvenWeek).HasColumnType("bit");
         });
 
         modelBuilder.Entity<TeacherLesson>(entity => 

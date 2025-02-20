@@ -29,7 +29,10 @@ namespace Schedule_for_Un.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Lesson>> GetLesson(int id)
         {
-            var lesson = await _context.Lessons.FindAsync(id);
+            var lesson = await _context.Lessons
+                .Include(l => l.TeacherLessons)
+                .Include(l => l.GroupLessons)
+                .FirstOrDefaultAsync(l => l.Id == id);
 
             if (lesson == null)
             {
@@ -37,6 +40,23 @@ namespace Schedule_for_Un.Controllers
             }
 
             return lesson;
+        }
+        [HttpGet("lesson-course/{course}")]
+        public async Task<ActionResult<IEnumerable<Lesson>>> GetLessonsByCourse(byte course)
+        {
+            var lessons = await _context.Lessons
+                .Include(l => l.TeacherLessons)
+                    .ThenInclude(tl => tl.Teacher)
+                .Include(l => l.GroupLessons)
+                .Where(l => l.GroupLessons.Any(gl => gl.Group!.Course == course))
+                .ToListAsync();
+
+            if (lessons == null || !lessons.Any())
+            {
+                return NotFound();
+            }
+
+            return lessons;
         }
 
         [HttpPut("{id}")]
@@ -211,6 +231,31 @@ namespace Schedule_for_Un.Controllers
                 var lesson = lessonWithDetails.Lesson;
                 var teacherIds = lessonWithDetails.TeacherIds;
                 var groupIds = lessonWithDetails.GroupIds;
+
+                if (lesson == null || teacherIds == null || groupIds == null)
+                {
+                    return BadRequest();
+                }
+                if (teacherIds.Count == 0 || groupIds.Count == 0)
+                {
+                    return BadRequest(new { message = "Не вказано викладачів або групи" });
+                }
+                
+                var conflictingGroup = _context.Lessons
+                    .Where(l => l.GroupLessons.Any(gl => groupIds.Contains(gl.GroupId)) && l.Day == lesson.Day && l.NumberOfPair == lesson.NumberOfPair)
+                    .SelectMany(l => l.GroupLessons)
+                    .FirstOrDefault(gl => groupIds.Contains(gl.GroupId));
+
+                if (conflictingGroup != null)
+                {
+                    var groupName = _context.Groups.Find(conflictingGroup.GroupId)?.Name;
+                    return BadRequest(new { message = $"На цей час та день у групи {groupName} вже є заняття" });
+                }
+
+                if (lesson.HaveConsultation && lesson.HoursOfConsultation == null)
+                {
+                    return BadRequest(new { message = "Не вказано кількість годин консультацій" });
+                }
 
                 _context.Lessons.Add(lesson);
                 await _context.SaveChangesAsync();

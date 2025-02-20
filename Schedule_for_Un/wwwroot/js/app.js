@@ -2,6 +2,13 @@ const courseText = document.getElementById("courseValue");
 const courses = ["1 КУРС", "2 КУРС", "3 КУРС", "4 КУРС"];
 let currentIndex = courses.indexOf(courseText.textContent);
 
+let isEvenWeek = true; // для розкладу
+
+function toggleWeek() {
+  isEvenWeek = !isEvenWeek;
+  loadSchedule();
+}
+
 function navigate(direction) {
   currentIndex += direction;
   if (currentIndex < 0) {
@@ -14,15 +21,86 @@ function navigate(direction) {
   loadSchedule();
 }
 
+document.getElementById("search-input-groups").addEventListener("input", function () {
+  const searchValue = this.value.toLowerCase();
+  const groupsContainer = document.getElementById("groups-container");
+  const groupItems = Array.from(groupsContainer.children);
+
+  if (searchValue === "") {
+    loadGroups();
+    return;
+  }
+
+  groupItems.sort((a, b) => {
+      const nameA = a.querySelector(".group-name").textContent.toLowerCase();
+      const nameB = b.querySelector(".group-name").textContent.toLowerCase();
+
+      const matchA = nameA.includes(searchValue);
+      const matchB = nameB.includes(searchValue);
+
+      return matchB - matchA; // Якщо matchB > matchA, то B підніметься вище
+  });
+
+  groupItems.forEach(item => {
+    groupsContainer.appendChild(item);
+    const groupName = item.querySelector(".group-name");
+        if (groupName.textContent.toLowerCase().includes(searchValue)) {
+            item.classList.add("highlight"); 
+        } else {
+            item.classList.remove("highlight");
+        }
+  });
+});
+
+document.getElementById("search-input-teachers").addEventListener("input", function () {
+  const searchValue = this.value.toLowerCase();
+  const teachersContainer = document.getElementById("teachers-container");
+  const teacherItems = Array.from(teachersContainer.children);
+
+  if (searchValue === "") {
+    loadTeachers();
+    return;
+  }
+
+  teacherItems.sort((a, b) => {
+    const nameA = a.querySelector(".teacher-name").textContent.toLowerCase();
+    const nameB = b.querySelector(".teacher-name").textContent.toLowerCase();
+
+    const matchA = nameA.includes(searchValue);
+    const matchB = nameB.includes(searchValue);
+
+    return matchB - matchA;
+  });
+
+  teacherItems.forEach(item => {
+    teachersContainer.appendChild(item);
+    const teacherName = item.querySelector(".teacher-name");
+    if (teacherName.textContent.toLowerCase().includes(searchValue)) {
+      item.classList.add("highlight");
+    } else {
+      item.classList.remove("highlight");
+    }
+  });
+});
+
+
+
 async function loadSchedule() {
   try {
     const response = await fetch("/api/groups");
     const groups = await response.json();
     const sortedGroups = sortGroups(groups);
     const course = parseInt(courseText.getAttribute("data-course"));
+    let lessons = [];
+
+    const responseLessons = await fetch(`/api/lessons/lesson-course/${course}`);
+    if (responseLessons.ok) {
+      lessons = await responseLessons.json();
+    }
+
     const scheduleTable = document.getElementById("schedule-table");
     scheduleTable.innerHTML = "";
-    scheduleTable.appendChild(generateScheduleTable(sortedGroups, course));
+    scheduleTable.appendChild(generateScheduleTable(sortedGroups, course, lessons));
   } catch (error) {
     console.error('Error fetching groups:', error);
   }
@@ -70,7 +148,9 @@ function closeModal() {
     clearForm(addTeacherForm);
     Array.prototype.forEach.call(timeCells, cell => {
       cell.classList.remove('selected');
-      cell.removeAttribute("data-id");//доробити для обраного часу.
+      cell.classList.remove('not-free');
+      cell.removeAttribute("data-id");
+      cell.innerHTML = "";
     });
     addTeacherForm.removeAttribute("data-edit-id");
   }
@@ -151,9 +231,11 @@ async function highlightTeacherFreeHours(teacherId) {
     if (!response.ok) {
       throw new Error("Failed to fetch free hours");
     }
-    const freeHours = await response.json();
+    const data = await response.json();
+    const AvailableHours = data.availableHours;
+    const OccupiedHours = data.occupiedHours;
 
-    freeHours.forEach(freeHour => {
+    AvailableHours.forEach(freeHour => {
       const cellId = `cell-${freeHour.day}-${freeHour.numberOfPair}`;
       const cell = document.getElementById(cellId);
       if (cell) {
@@ -161,7 +243,31 @@ async function highlightTeacherFreeHours(teacherId) {
         cell.setAttribute('data-id', freeHour.id);
       }
     });
-    return freeHours;
+
+    for (const occupiedHour of OccupiedHours) {
+      const cellId = `cell-${occupiedHour.day}-${occupiedHour.numberOfPair}`;
+      const cell = document.getElementById(cellId);
+      if (cell) {
+        cell.classList.add('not-free');
+        const lessonResponse = await fetch(`/api/lessons/${occupiedHour.lessonId}`);
+        if (lessonResponse.ok) {
+          const lesson = await lessonResponse.json();
+          const groupNames = await Promise.all(
+            lesson.groupLessons.map(async (groupLesson) => {
+              const groupResponse = await fetch(`/api/groups/${groupLesson.groupId}`);
+              if (groupResponse.ok) {
+                const group = await groupResponse.json();
+                return group.name;
+              }
+              return null;
+            })
+          );
+            cell.innerHTML = `<p><b>${lesson.subject} (${lesson.isLecture ? 'Л' : 'П'})</b></p><p>${groupNames.filter(name => name).join(', ')}</p>`;
+        }
+      }
+    }
+
+    return AvailableHours;
   } catch (error) {
     console.error("Error highlighting free hours:", error);
     return [];
@@ -170,15 +276,19 @@ async function highlightTeacherFreeHours(teacherId) {
 
 timeCells.forEach(cell => {
   cell.addEventListener('click', () => {
-    cell.classList.toggle('selected');
+    if (!cell.classList.contains('not-free')) {
+      cell.classList.toggle('selected');
+    }
   });
 });
 
 function toggleCells(selector, index) {
   const cells = document.querySelectorAll(selector);
-  const allSelected = Array.from(cells).every(cell => cell.classList.contains('selected'));
+  const allSelected = Array.from(cells).every(cell => cell.classList.contains('selected') || cell.classList.contains('not-free'));
   cells.forEach(cell => {
-    cell.classList.toggle('selected', !allSelected);
+    if (!cell.classList.contains('not-free')) {
+      cell.classList.toggle('selected', !allSelected);
+    }
   });
 }
 
@@ -420,6 +530,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
       }
     }
   });
+
 });
 
 // ---------------------- GROUPS --------------------------------
@@ -501,13 +612,13 @@ async function openEditTeacherModal(teacherId) {
 
     document.getElementById("teacher-name").value = teacher.fullName;
     document.getElementById("teacher-position").value = teacher.position;
-    const freeHours = await highlightTeacherFreeHours(teacherId);
+    const AvailableHours = await highlightTeacherFreeHours(teacherId);
 
     initialTeacherData = {
       fullName: String(teacher.fullName),
       position: String(teacher.position),
       id: String(teacher.id),
-      freeHours: freeHours.map(fh => ({ day: fh.day, pair: fh.numberOfPair })).sort((a, b) => a.day - b.day || a.pair - b.pair)
+      freeHours: AvailableHours.map(fh => ({ day: fh.day, pair: fh.numberOfPair })).sort((a, b) => a.day - b.day || a.pair - b.pair)
     };
 
   } catch (error) {
@@ -536,7 +647,7 @@ function addTeacherToContainer(teacher) {
         <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path>
       </svg>
     </button>
-    <span class="teacher-name">${teacher.fullName}</span>
+    <span class="teacher-name">${teacher.fullName} <span style="color: gray; text-transform: lowercase; padding-left: 5px;">(${teacher.position})</span></span>
     <button class="icon-button delete-button" id="delete-teacher${teacher.id}" title="Delete" type="button">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon">
         <path d="M3 6h18"></path>
@@ -622,7 +733,7 @@ confirmDeleteButton.addEventListener("click", async () => {
   }
 });
 
-function generateScheduleTable(groups, course) {
+function generateScheduleTable(groups, course, lessons) {
   const table = document.createElement("table");
   table.classList.add("schedule-table");
   
@@ -633,6 +744,9 @@ function generateScheduleTable(groups, course) {
   const emptyCell = document.createElement("th");
   emptyCell.colSpan = 2;
   emptyCell.rowSpan = 2;
+  emptyCell.classList.add("nav-cell");
+  emptyCell.innerHTML = isEvenWeek ? `Парний` : `Непарний`; // Відображення стану тижня
+  emptyCell.addEventListener("click", toggleWeek);
   headerRow.appendChild(emptyCell);
   
   const filteredGroups = groups.filter(group => group.course === course);
@@ -680,44 +794,108 @@ function generateScheduleTable(groups, course) {
       "14:05-14:50 14:55-15:40"
   ];
   
-  days.forEach(day => {
-      const dayRow = document.createElement("tr");
-      const dayCell = document.createElement("td");
-      dayCell.textContent = day;
-      dayCell.classList.add("day");
-      dayCell.rowSpan = times.length;
-      dayRow.appendChild(dayCell);
-      
-      times.forEach((time, index) => {
-          const timeRow = index === 0 ? dayRow : document.createElement("tr");
-          const timeCell = document.createElement("td");
-          timeCell.textContent = time;
-          timeCell.classList.add("pair-time-cell");
-          timeRow.appendChild(timeCell);
-          
-          filteredGroups.forEach(group => {
-              const classCell = document.createElement("td");
-              classCell.textContent = "";
-              classCell.setAttribute("data-group-id", group.id);
-              classCell.setAttribute("data-day", days.indexOf(day) + 1);
-              classCell.setAttribute("data-pair", index + 1);
+  for (let dayIndex = 0; dayIndex < days.length; dayIndex++) {
+    const day = days[dayIndex];
+    for (let timeIndex = 0; timeIndex < times.length; timeIndex++) {
+      const time = times[timeIndex];
+      const timeRow = document.createElement("tr");
 
-              timeRow.appendChild(classCell);
-          });
-          
-          tbody.appendChild(timeRow);
-      });
-
-      if (day !== days[days.length - 1]) {
-        const emptyRow = document.createElement("tr");
-        const emptyRowCell = document.createElement("td");
-        emptyRowCell.colSpan = 2 + filteredGroups.length;
-        emptyRow.appendChild(emptyRowCell);
-        emptyRowCell.classList.add("empty-row");
-        tbody.appendChild(emptyRow);
+      if (timeIndex === 0) {
+        const dayCell = document.createElement("td");
+        dayCell.textContent = day;
+        dayCell.classList.add("day");
+        dayCell.rowSpan = times.length;
+        timeRow.appendChild(dayCell);
       }
-  });
-  
+
+      const timeCell = document.createElement("td");
+      timeCell.textContent = time;
+      timeCell.classList.add("pair-time-cell");
+      timeRow.appendChild(timeCell);
+
+      for (let groupIndex = 0; groupIndex < filteredGroups.length; groupIndex++) {
+        const group = filteredGroups[groupIndex];
+        const classCell = document.createElement("td");
+        classCell.setAttribute("data-group-id", group.id);
+        classCell.setAttribute("data-day", dayIndex + 1);
+        classCell.setAttribute("data-pair", timeIndex + 1);
+
+        const lesson = lessons.find(lesson => 
+          lesson.day === dayIndex + 1 && 
+          lesson.numberOfPair === timeIndex + 1 && 
+          lesson.groupLessons.some(gl => gl.groupId === group.id) &&
+          (lesson.isEvenWeek === isEvenWeek || lesson.isEvenWeek === null)
+        );
+
+        if (lesson) {
+          const teacherNames = lesson.teacherLessons.map(tl => {
+            const positionShort = tl.teacher.position === "Асистент" ? "ас." :
+                                  tl.teacher.position === "Доцент" ? "доц." :
+                                  tl.teacher.position === "Професор" ? "пр." : "";
+            return `${positionShort} ${tl.teacher.fullName}`;
+          }).join("<br>");
+          const lessonType = lesson.isLecture ? `(лек) ${lesson.hoursOfSubject} год.` : `(пр) ${lesson.hoursOfSubject} год.`;
+          const consultationInfo = lesson.haveConsultation ? `<p>(кон) ${lesson.hoursOfConsultation} год.</p>` : "";
+          
+          // кнопки редагування та видалення
+          const editButton = `
+            <button class="icon-button edit-button" title="Edit" type="button" onclick="editLesson(${lesson.id})">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path>
+              </svg>
+            </button>`;
+          const deleteButton = `
+            <button class="icon-button delete-button" title="Delete" type="button" onclick="deleteLesson(${lesson.id})">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon">
+                <path d="M3 6h18"></path>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                <path d="M10 11v6"></path>
+                <path d="M14 11v6"></path>
+                <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </button>`;
+
+          classCell.innerHTML = `
+            <div class="lesson-controls">
+              ${editButton}
+              ${deleteButton}
+            </div>
+            <div class="lesson-info">
+              <p><b>${lesson.subject}</b></p>
+              <p>${lessonType}</p>
+              ${consultationInfo}
+              <p>${teacherNames}</p>
+            </div>
+          `;
+
+          if (lesson.groupLessons.length > 1) {
+            classCell.colSpan = lesson.groupLessons.length;
+            classCell.style.setProperty('--colspan', (Math.sqrt(lesson.groupLessons.length)).toFixed(2));
+            groupIndex += lesson.groupLessons.length - 1;
+          } else {
+            classCell.style.setProperty('--colspan', 1);
+          }
+
+          classCell.removeAttribute("data-group-id");
+        }
+
+        timeRow.appendChild(classCell);
+      }
+
+      tbody.appendChild(timeRow);
+    }
+
+    if (dayIndex !== days.length - 1) {
+      const emptyRow = document.createElement("tr");
+      const emptyRowCell = document.createElement("td");
+      emptyRowCell.colSpan = 2 + filteredGroups.length;
+      emptyRow.appendChild(emptyRowCell);
+      emptyRowCell.classList.add("empty-row");
+      tbody.appendChild(emptyRow);
+    }
+  }
+
   return table;
 }
 
@@ -860,7 +1038,7 @@ function openAddLessonModal(groupId, day, pair) {
           <label for="group-select"><p>Вибір групи:</p></label>
           <select id="group-select" class="input-add" name="lesson-group" disabled></select>
           <label for="lesson-hours"><p>Кількість годин:</p></label>
-          <input type="number" class="input-add" id="lesson-hours" placeholder="Введіть кількість годин предмету..." name="lesson-hours" min="1" required>
+          <input type="number" class="input-add" id="lesson-hours" placeholder="Введіть кількість годин предмету..." name="lesson-hours" min="6" required>
           <label class="checkbox-container">Консультації
             <input type="checkbox" id="has-consultation" name="lesson-has-consultation">
             <span class="checkmark"></span>
@@ -869,10 +1047,24 @@ function openAddLessonModal(groupId, day, pair) {
             <label for="consultation-hours"><p>Кількість годин консультацій:</p></label>
             <input type="number" class="input-add" id="consultation-hours" placeholder="Введіть кількість годин консультацій..." name="lesson-consultation-hours" min="1">
           </div>
-          <label class="checkbox-container">Тиждень парний
-            <input type="checkbox" id="is-even-week" name="lesson-is-even-week">
-            <span class="checkmark"></span>
-          </label>
+          <div class="radio-container-div">
+            <label><p>Тиждень:</p></label>
+            <label class="radio-container">
+              Парний
+              <input type="radio" name="lesson-is-even-week" value="1">
+              <span class="checkmark"></span>
+            </label>
+            <label class="radio-container">
+              Непарний
+              <input type="radio" name="lesson-is-even-week" value="0">
+              <span class="checkmark"></span>
+            </label>
+            <label class="radio-container">
+              Не поділяється
+              <input type="radio" name="lesson-is-even-week" value="2" checked>
+              <span class="checkmark"></span>
+            </label>
+          </div>
         </fieldset>
         <button type="submit" class="submit-button">Додати</button>
       </form>
@@ -963,13 +1155,11 @@ function openAddLessonModal(groupId, day, pair) {
         hoursOfConsultation: formData.get("lesson-consultation-hours") || null,
         haveConsultation: formData.get("lesson-has-consultation") === 'on' ? true : false,
         isLecture: formData.get("lesson-isLecture") === '1' ? true : false,
-        isEvenWeek: formData.get("lesson-is-even-week") === 'on' ? true : false
+        isEvenWeek: formData.get("lesson-is-even-week") === '1' ? true : formData.get("lesson-is-even-week") === '0' ? false : null
       },
       teacherIds: getSelectedValues(document.querySelector("select[name='lesson-teacher']")),
       groupIds: getSelectedValues(document.querySelector("select[name='lesson-group']"))
     };
-    
-    console.log(lessonData);
 
     try {
       const response = await fetch('/api/lessons/with-details', {
@@ -985,8 +1175,10 @@ function openAddLessonModal(groupId, day, pair) {
         showMessage(errorData.message || "Помилка додавання заняття!", "error", 2000);
         throw new Error('Server error');
       }
-  
-      const newLesson = await response.json();
+
+      closeAddLessonOverlay.click();
+      showMessage("Пару успішно додано!", "success", 2000);
+      loadSchedule();
       
     } catch (error) {
       console.error("There was a problem with the fetch operation:", error);
@@ -1058,15 +1250,40 @@ async function highlightTeacherCardFreeHours(teacherId, day, pair, cardId) {
     if (!response.ok) {
       throw new Error("Failed to fetch free hours");
     }
-    const freeHours = await response.json();
+    const data = await response.json();
+    const AvailableHours = data.availableHours;
+    const OccupiedHours = data.occupiedHours;
 
-    freeHours.forEach(freeHour => {
+    AvailableHours.forEach(freeHour => {
       const cellId = `${cardId}-cell-${freeHour.day}-${freeHour.numberOfPair}`;
       const cell = document.getElementById(cellId);
       if (cell) {
         cell.classList.add('selected');
       }
     });
+
+    for (const occupiedHour of OccupiedHours) {
+      const cellId = `${cardId}-cell-${occupiedHour.day}-${occupiedHour.numberOfPair}`;
+      const cell = document.getElementById(cellId);
+      if (cell) {
+        cell.classList.add('not-free');
+        const lessonResponse = await fetch(`/api/lessons/${occupiedHour.lessonId}`);
+        if (lessonResponse.ok) {
+          const lesson = await lessonResponse.json();
+          const groupNames = await Promise.all(
+            lesson.groupLessons.map(async (groupLesson) => {
+              const groupResponse = await fetch(`/api/groups/${groupLesson.groupId}`);
+              if (groupResponse.ok) {
+                const group = await groupResponse.json();
+                return group.name;
+              }
+              return null;
+            })
+          );
+            cell.innerHTML = `<p><b>${lesson.subject} (${lesson.isLecture ? 'Л' : 'П'})</b></p><p>${groupNames.filter(name => name).join(', ')}</p>`;
+        }
+      }
+    }
 
     if (day && pair) {
       const highlightCellId = `${cardId}-cell-${day}-${pair}`;
